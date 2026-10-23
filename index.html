@@ -1,0 +1,2959 @@
+<!DOCTYPE html>
+<html lang="tr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mekanik Tesisat Hidrolik Hesap ve Tasarım Programı</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        
+        .font-mono-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #e2e8f0; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* Table Tree Indentation */
+        .tree-indent-0 { padding-left: 0.5rem !important; }
+        .tree-indent-1 { padding-left: 1.5rem !important; }
+        .tree-indent-2 { padding-left: 2.5rem !important; }
+        .tree-indent-3 { padding-left: 3.5rem !important; }
+        .tree-indent-4 { padding-left: 4.5rem !important; }
+        .tree-indent-5 { padding-left: 5.5rem !important; }
+
+        /* Row Highlights */
+        .critical-path-row {
+            background-color: #fef2f2 !important;
+            border-left: 4px solid #ef4444 !important;
+        }
+        .pump-row {
+            background-color: #f0f9ff !important;
+            border-left: 4px solid #0284c7 !important;
+        }
+        .collector-row {
+            background-color: #faf5ff !important;
+            border-left: 4px solid #9333ea !important;
+        }
+        @keyframes pulseHighlight {
+            0%, 100% { background-color: #fef08a; }
+            50% { background-color: #fde047; }
+        }
+        .row-flash {
+            animation: pulseHighlight 1.2s ease-in-out 2;
+        }
+
+        /* =========================================================
+           CSS HIERARCHICAL TREE DIAGRAM (SYSTEM BROWSER)
+           ========================================================= */
+        .sys-tree, .sys-tree ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .sys-tree ul {
+            margin-left: 1.35rem;
+            padding-left: 1.15rem;
+            position: relative;
+        }
+        /* Vertical line for children group */
+        .sys-tree ul::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 1.1rem;
+            left: 0;
+            width: 2px;
+            background-color: #cbd5e1;
+        }
+        .sys-tree li {
+            position: relative;
+            padding-top: 0.45rem;
+            padding-bottom: 0.15rem;
+        }
+        /* Horizontal connector line to node */
+        .sys-tree ul > li::before {
+            content: "";
+            position: absolute;
+            top: 1.35rem;
+            left: -1.15rem;
+            width: 1.15rem;
+            height: 2px;
+            background-color: #cbd5e1;
+        }
+        /* Critical path connector overrides */
+        .sys-tree ul > li.crit-branch::before {
+            background-color: #ef4444;
+            height: 2.5px;
+            z-index: 2;
+        }
+        .sys-tree ul.crit-group::before {
+            background-color: #fca5a5;
+        }
+        /* Hide vertical line tail after last child */
+        .sys-tree ul > li:last-child::after {
+            content: "";
+            position: absolute;
+            top: 1.45rem;
+            bottom: 0;
+            left: -1.2rem;
+            width: 4px;
+            background-color: #ffffff;
+            z-index: 1;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            background-color: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(3px);
+        }
+
+        /* =========================================================
+           PRINT / PDF REPORT STYLES (@media print)
+           ========================================================= */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 8mm;
+            }
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 9pt !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            #printHeader {
+                display: flex !important;
+            }
+            main {
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .shadow-sm, .shadow, .shadow-md, .shadow-lg {
+                box-shadow: none !important;
+            }
+            .border, .border-slate-200, .border-slate-300 {
+                border-color: #94a3b8 !important;
+            }
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                font-size: 8pt !important;
+            }
+            th {
+                background-color: #e2e8f0 !important;
+                color: #0f172a !important;
+                border: 1px solid #64748b !important;
+                padding: 4px 5px !important;
+                font-weight: 700 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            td {
+                border: 1px solid #94a3b8 !important;
+                padding: 3px 5px !important;
+                vertical-align: middle !important;
+            }
+            tr, .sys-node-card, .print-avoid-break {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            input, select {
+                border: none !important;
+                background: transparent !important;
+                appearance: none !important;
+                -webkit-appearance: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-weight: 600 !important;
+                color: #000 !important;
+                width: auto !important;
+            }
+            .critical-path-row {
+                background-color: #fee2e2 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .pump-row {
+                background-color: #e0f2fe !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .collector-row {
+                background-color: #f3e8ff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            /* Split view reset on print so table is full width and tree is below it */
+            #workspaceGrid {
+                display: block !important;
+            }
+            #treeVisualizerContainer {
+                margin-top: 14px !important;
+                border: 1px solid #64748b !important;
+                page-break-before: auto;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-brand-600 selection:text-white">
+
+    <!-- ========================================================= -->
+    <!-- PRINT REPORT HEADER (ONLY VISIBLE IN PRINT / PDF)         -->
+    <!-- ========================================================= -->
+    <div id="printHeader" class="hidden justify-between items-end border-b-2 border-slate-900 pb-3 mb-4">
+        <div>
+            <div class="text-[10px] font-bold tracking-widest text-slate-500 uppercase">MÜHENDİSLİK HESAPLAMA VE TASARIM DOKÜMANI</div>
+            <h1 id="printReportTitle" class="text-xl font-extrabold text-slate-900 uppercase tracking-tight mt-0.5">
+                MEKANİK TESİSAT HİDROLİK HESAP RAPORU
+            </h1>
+            <div class="flex items-center gap-6 mt-1 text-xs font-semibold text-slate-700">
+                <span id="printProjectName">Proje Adı: -</span>
+                <span id="printSystemMode">Sistem: Kapalı Devre</span>
+            </div>
+        </div>
+        <div class="text-right text-[11px] font-mono text-slate-700">
+            <div><strong>Tarih:</strong> <span id="printDate"></span></div>
+            <div><strong>Hesap Yöntemi:</strong> Colebrook-White & Darcy-Weisbach</div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- TOP APPLICATION HEADER                                    -->
+    <!-- ========================================================= -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md no-print">
+        <div class="max-w-[1720px] mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-teal-700 flex items-center justify-center shadow-inner border border-teal-400/30">
+                    <i class="fa-solid fa-faucet-drip text-lg text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">
+                        Mekanik Tesisat Hidrolik Hesap ve Tasarım Programı
+                    </h1>
+                    <p class="text-[11px] text-slate-400">Dinamik Boru Çapı, Kollektör/Pompa Zon Analizi, Kritik Devre ve Otomatik Metraj</p>
+                </div>
+            </div>
+
+            <!-- System Mode Switcher & Project Name -->
+            <div class="flex flex-wrap items-center gap-2.5">
+                <!-- System Type Toggle -->
+                <div class="bg-slate-800 p-1 rounded-xl border border-slate-700 flex items-center text-xs font-semibold">
+                    <button onclick="setSystemMode('closed')" id="btnModeClosed" class="px-3 py-1.5 rounded-lg transition-all bg-brand-600 text-white shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-temperature-half"></i>
+                        <span>Kapalı Devre (Isıtma/Soğutma)</span>
+                    </button>
+                    <button onclick="setSystemMode('open')" id="btnModeOpen" class="px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-shower"></i>
+                        <span>Açık Uçlu Sistem (Sıhhi/Yangın)</span>
+                    </button>
+                </div>
+
+                <!-- Project Name -->
+                <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
+                    <i class="fa-solid fa-building text-slate-400 text-xs"></i>
+                    <input type="text" id="projectNameInput" value="Merkezi Isıtma ve Tesisat Projesi" oninput="updatePrintHeaders()" class="bg-transparent text-xs font-semibold text-white focus:outline-none w-48 sm:w-56" placeholder="Proje Adı Girin...">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================================= -->
+    <!-- NAVIGATION TABS & SUMMARY KPIS                            -->
+    <!-- ========================================================= -->
+    <div class="bg-white border-b border-slate-200 shadow-sm no-print">
+        <div class="max-w-[1720px] mx-auto px-4 pt-2.5 flex flex-wrap items-center justify-between gap-4">
+            <!-- 3 Main Tabs -->
+            <div class="flex flex-wrap items-center gap-1.5">
+                <button onclick="switchTab('tabProject')" id="tabBtnProject" class="px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold transition-all bg-slate-900 text-white border-b-2 border-brand-500 flex items-center gap-2">
+                    <i class="fa-solid fa-diagram-project text-brand-400"></i>
+                    <span>1. Proje Hesabı & Kritik Hat</span>
+                </button>
+                <button onclick="switchTab('tabBom')" id="tabBtnBom" class="px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 border-b-2 border-transparent flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-list text-amber-600"></i>
+                    <span>2. Keşif & Metraj (BOM)</span>
+                </button>
+                <button onclick="switchTab('tabQuick')" id="tabBtnQuick" class="px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 border-b-2 border-transparent flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-sky-600"></i>
+                    <span>3. Hızlı Tekil Hesaplayıcı</span>
+                </button>
+            </div>
+
+            <!-- Unit Preferences -->
+            <div class="flex items-center gap-3 pb-2 text-xs">
+                <div id="unitPowerBox" class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                    <span class="text-slate-500 font-medium">Kapasite Birimi:</span>
+                    <select id="selPowerUnit" onchange="changePowerUnit(this.value)" class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer">
+                        <option value="kW">kW</option>
+                        <option value="kcal">kcal/h</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                    <span class="text-slate-500 font-medium">Su Sıcaklığı:</span>
+                    <select id="selWaterTemp" onchange="changeWaterTemp(this.value)" class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer">
+                        <option value="80">Isıtma (80/60°C - ρ:972 kg/m³)</option>
+                        <option value="45">Düşük Sıc. (50/40°C - ρ:990 kg/m³)</option>
+                        <option value="10">Soğutma/Sıhhi (7/12°C - ρ:999 kg/m³)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- MAIN WORKSPACE                                            -->
+    <!-- ========================================================= -->
+    <main class="flex-1 max-w-[1720px] w-full mx-auto px-4 py-4 space-y-4">
+
+        <!-- ===================================================== -->
+        <!-- TAB 1: PROJE HESABI & KRİTİK HAT                      -->
+        <!-- ===================================================== -->
+        <section id="tabProject" class="space-y-4">
+
+            <!-- Executive KPI Summary Bar -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 print-avoid-break">
+                <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Sistem Toplam Kapasite & Debi</span>
+                        <div class="text-lg font-extrabold text-slate-800 font-mono-num mt-0.5" id="kpiTotalFlow">0.00 L/s (0.00 m³/h)</div>
+                        <div class="text-xs text-slate-500 font-medium mt-0.5" id="kpiTotalPower">Toplam Yük: 0.0 kW</div>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-water"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pompa Zonları Özeti</span>
+                        <div class="text-lg font-extrabold text-sky-700 font-mono-num mt-0.5" id="kpiPumpCount">0 Pompa Devresi</div>
+                        <div class="text-xs text-slate-500 font-medium mt-0.5" id="kpiPumpDetail">Kollektör / Zon tanımlanmadı</div>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-fan"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-3.5 border-l-4 border-l-red-500 border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-red-600">En Kritik Devre Basma Yüksekliği</span>
+                        <div class="text-lg font-extrabold text-red-600 font-mono-num mt-0.5" id="kpiCriticalHead">0.00 mSS (0.0 kPa)</div>
+                        <div class="text-xs text-slate-600 font-medium mt-0.5 truncate max-w-[230px]" id="kpiCriticalPath">Güzergah: -</div>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-route"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Hidrolik Hız & Denge Kontrolü</span>
+                        <div class="text-sm font-bold text-emerald-600 mt-1" id="kpiVelocityStatus">Tüm Hatlar Sınır Değerde</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Kollektör ≤0.5 | ≤DN50: 1.0 | >DN50: 1.5 m/s</div>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg" id="kpiVelocityIcon">
+                        <i class="fa-solid fa-shield-check"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action & View Toolbar -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 no-print">
+                <!-- Left: Node Creation Buttons -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="addNode('kollektor')" class="px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                        <i class="fa-solid fa-bars-staggered"></i>
+                        <span>+ Kollektör Ekle</span>
+                    </button>
+                    <button onclick="addNode('pompa')" class="px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                        <i class="fa-solid fa-fan"></i>
+                        <span>+ Pompa Devresi Ekle</span>
+                    </button>
+                    <button onclick="addNode('boru')" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                        <i class="fa-solid fa-plus text-brand-400"></i>
+                        <span>+ Boru Hattı Ekle</span>
+                    </button>
+
+                    <div class="h-5 w-px bg-slate-200 mx-1"></div>
+
+                    <button onclick="autoSizeAllNodes()" class="px-3 py-2 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200 text-xs font-bold flex items-center gap-1.5 transition" title="Tüm satırların çaplarını hedef hız sınırlarına göre otomatik optimize eder">
+                        <i class="fa-solid fa-wand-magic-sparkles text-brand-600"></i>
+                        <span>Tüm Çapları Otomatik Seç</span>
+                    </button>
+                    <button onclick="loadSampleProject()" class="px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-flask"></i>
+                        <span>Örnek Proje Yükle</span>
+                    </button>
+                    <button onclick="clearAllNodes()" class="px-2.5 py-2 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-xs font-semibold flex items-center gap-1 transition">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>Temizle</span>
+                    </button>
+                </div>
+
+                <!-- Right: Tree Layout & Export Controls -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Tree View Position Selector -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 text-[11px] font-semibold">
+                        <span class="px-2 text-slate-500"><i class="fa-solid fa-sitemap mr-1"></i>Şema:</span>
+                        <button onclick="setTreeLayout('bottom')" id="btnLayoutBottom" class="px-2 py-1 rounded bg-white text-slate-800 shadow-sm">Alt Panel</button>
+                        <button onclick="setTreeLayout('side')" id="btnLayoutSide" class="px-2 py-1 rounded text-slate-600 hover:text-slate-900">Yan Panel</button>
+                        <button onclick="setTreeLayout('hide')" id="btnLayoutHide" class="px-2 py-1 rounded text-slate-600 hover:text-slate-900">Gizle</button>
+                    </div>
+
+                    <button onclick="exportCSV()" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                        <i class="fa-solid fa-file-csv"></i>
+                        <span>Excel (CSV) İndir</span>
+                    </button>
+                    <button onclick="triggerPrint()" class="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                        <i class="fa-solid fa-print text-brand-400"></i>
+                        <span>Yazdır / PDF Raporu</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- WORKSPACE GRID (Supports Bottom or Side Split View) -->
+            <div id="workspaceGrid" class="grid grid-cols-1 gap-4 items-start">
+
+                <!-- 1. HYDRAULIC CALCULATION TABLE CONTAINER -->
+                <div id="tableContainer" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead>
+                                <tr class="bg-slate-800 text-slate-100 text-[10px] uppercase tracking-wider font-bold">
+                                    <th class="py-2.5 px-2 text-center w-10 no-print" title="Fittings ve Cihaz/Armatür Detayı">Detay</th>
+                                    <th class="py-2.5 px-2 min-w-[95px]">Hat No (ID)</th>
+                                    <th class="py-2.5 px-2 w-24">Bağlı Üst Hat</th>
+                                    <th class="py-2.5 px-2 w-28">Eleman Türü</th>
+                                    <th class="py-2.5 px-2 min-w-[150px]">Hat / Zon Açıklaması</th>
+                                    
+                                    <!-- Closed Loop Specific Columns -->
+                                    <th class="py-2.5 px-2 w-28 text-right col-closed" id="thPowerUnit">Kapasite (kW)</th>
+                                    <th class="py-2.5 px-2 w-16 text-center col-closed">ΔT (°C)</th>
+                                    
+                                    <!-- Open System Specific Columns -->
+                                    <th class="py-2.5 px-2 w-20 text-center col-open hidden" title="Geometrik Statik Kot Farkı (m)">Kot Hz (m)</th>
+                                    <th class="py-2.5 px-2 w-20 text-center col-open hidden" title="Uç Birimde İstenen Minimum Akma Basıncı (mSS)">Uç Hm (mSS)</th>
+
+                                    <th class="py-2.5 px-2 w-28 text-right">Debi (L/s & m³/h)</th>
+                                    <th class="py-2.5 px-2 w-36">Boru Tipi</th>
+                                    <th class="py-2.5 px-2 w-36 text-center">Anma Çapı & Oto</th>
+                                    <th class="py-2.5 px-2 w-24 text-center" title="İç Çap, Et Kalınlığı ve Pürüzlülük Ayarı">d_iç (mm)</th>
+                                    <th class="py-2.5 px-2 w-28 text-right">Hız V (m/s)</th>
+                                    <th class="py-2.5 px-2 w-16 text-center">Boy L (m)</th>
+                                    <th class="py-2.5 px-2 w-20 text-right" title="Birim Sürtünme Kaybı">R (Pa/m)</th>
+                                    <th class="py-2.5 px-2 w-24 text-right" title="Fittings ve Uç Cihaz Kayıpları Toplamı">Lokal (kPa)</th>
+                                    <th class="py-2.5 px-2 w-28 text-right bg-slate-900">Hat ΔP (mSS)</th>
+                                    <th class="py-2.5 px-2 w-16 text-center no-print">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calcTableBody" class="divide-y divide-slate-200 text-xs">
+                                <!-- Populated dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Empty State Panel (Visible on initial load when rows = 0) -->
+                    <div id="emptyStatePanel" class="p-10 text-center space-y-4 no-print">
+                        <div class="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center mx-auto text-2xl">
+                            <i class="fa-solid fa-sitemap"></i>
+                        </div>
+                        <div class="max-w-lg mx-auto space-y-1.5">
+                            <h3 class="text-base font-bold text-slate-800">Proje Hesap Tablosu Şu An Boş</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                Yeni bir tesisat projesine başlamak için aşağıdaki butonlarla <strong>Kollektör</strong>, <strong>Pompa Devresi</strong> veya doğrudan <strong>Boru Hattı</strong> ekleyebilir ya da tüm özellikleri hemen incelemek için hazır örnek projeyi yükleyebilirsiniz.
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                            <button onclick="addNode('kollektor')" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition">
+                                <i class="fa-solid fa-bars-staggered"></i>
+                                <span>+ Kollektör İle Başla</span>
+                            </button>
+                            <button onclick="addNode('pompa')" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition">
+                                <i class="fa-solid fa-fan"></i>
+                                <span>+ Pompa Devresi İle Başla</span>
+                            </button>
+                            <button onclick="addNode('boru')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition">
+                                <i class="fa-solid fa-plus text-brand-400"></i>
+                                <span>+ Boru Hattı İle Başla</span>
+                            </button>
+                            <button onclick="loadSampleProject()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition">
+                                <i class="fa-solid fa-bolt"></i>
+                                <span>Örnek Isı Merkezi Projesi Yükle</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. CSS HIERARCHICAL SYSTEM DIAGRAM (PROJE AĞACI GÖRSELLEŞTİRMESİ) -->
+                <div id="treeVisualizerContainer" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print-avoid-break">
+                    <div class="bg-slate-800 text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-network-wired text-brand-400"></i>
+                            <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider">Sistem Hiyerarşi ve Kritik Hat Şeması (Proje Ağacı)</h3>
+                        </div>
+                        <div class="flex items-center gap-4 text-[11px]">
+                            <div class="flex items-center gap-3 text-slate-300">
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span> Kollektör</span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span> Pompa Zonu</span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> Kritik Hat</span>
+                            </div>
+                            <label class="flex items-center gap-1.5 cursor-pointer no-print bg-slate-700 px-2.5 py-1 rounded text-slate-200 hover:text-white">
+                                <input type="checkbox" id="chkPrintTree" checked onchange="togglePrintTree(this.checked)" class="rounded text-brand-500 focus:ring-0">
+                                <span>PDF Raporuna Ekle</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="cssTreeBody" class="p-5 overflow-x-auto bg-white">
+                        <!-- Rendered dynamically via CSS hierarchical list -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ===================================================== -->
+        <!-- TAB 2: KEŞİF & METRAJ (BOM)                           -->
+        <!-- ===================================================== -->
+        <section id="tabBom" class="hidden space-y-6">
+            <!-- Top Actions for BOM -->
+            <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 no-print">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-check text-brand-600"></i>
+                        <span>Otomatik Keşif, Pompa Seçim ve Metraj Cetveli (BOM)</span>
+                    </h2>
+                    <p class="text-xs text-slate-500">Proje ağacındaki tüm pompalar, boru metrajları, armatürler ve cihazlar çaplarına göre kümülatif toplanmıştır.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportBomCSV()" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>Metrajı CSV İndir</span>
+                    </button>
+                    <button onclick="triggerPrint()" class="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                        <i class="fa-solid fa-print text-brand-400"></i>
+                        <span>Keşif & Metraj Listesi Yazdır / PDF</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 1. POMPA LİSTESİ TABLOSU -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 print-avoid-break">
+                <h3 class="text-sm font-bold text-slate-800 border-b border-slate-200 pb-2.5 mb-3 flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-fan text-sky-600"></i>
+                        <span>1. Sirkülasyon / Sistem Pompaları Seçim Tablosu</span>
+                    </span>
+                    <span class="text-[11px] font-normal text-slate-500">Her pompa devresinin kendi alt ağacındaki en kritik güzergaha göre hesaplanmıştır</span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                                <th class="py-2.5 px-3">Pompa Kodu & Adı</th>
+                                <th class="py-2.5 px-3">Bağlı Olduğu Kollektör / Hat</th>
+                                <th class="py-2.5 px-3 text-center">Bağlantı Çapı</th>
+                                <th class="py-2.5 px-3 text-right">Isıl Kapasite</th>
+                                <th class="py-2.5 px-3 text-right">Pompa Debisi (Q)</th>
+                                <th class="py-2.5 px-3 text-right">Basma Yüksekliği (Hm)</th>
+                                <th class="py-2.5 px-3">Zon Kritik Güzergahı</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bomPumpsBody" class="divide-y divide-slate-200 font-mono-num">
+                            <!-- Rendered via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2. BORU METRAJ & 3. FITTINGS/CIHAZ METRAJ -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Boru Metrajı -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 print-avoid-break">
+                    <h3 class="text-sm font-bold text-slate-800 border-b border-slate-200 pb-2.5 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-ruler-combined text-brand-600"></i>
+                        <span>2. Boru Metraj Listesi (Tip ve Çapa Göre)</span>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                                    <th class="py-2.5 px-3">Boru Standardı / Malzeme</th>
+                                    <th class="py-2.5 px-3 text-center">Anma Çapı</th>
+                                    <th class="py-2.5 px-3 text-center">İç Çap d_iç (mm)</th>
+                                    <th class="py-2.5 px-3 text-right">Toplam Uzunluk (m)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bomPipesBody" class="divide-y divide-slate-200 font-mono-num">
+                                <!-- Rendered via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Fittings & Armatür Metrajı -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 print-avoid-break">
+                    <h3 class="text-sm font-bold text-slate-800 border-b border-slate-200 pb-2.5 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-screwdriver-wrench text-amber-600"></i>
+                        <span>3. Fittings, Vana ve Cihaz/Ünite Metraj Listesi</span>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                                    <th class="py-2.5 px-3">Fittings / Armatür / Cihaz Adı</th>
+                                    <th class="py-2.5 px-3 text-center">Anma Çapı</th>
+                                    <th class="py-2.5 px-3 text-center">Kayıp Türü / Değeri</th>
+                                    <th class="py-2.5 px-3 text-right">Toplam Adet</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bomFittingsBody" class="divide-y divide-slate-200 font-mono-num">
+                                <!-- Rendered via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================== -->
+        <!-- TAB 3: HIZLI TEKİL HESAPLAYICI                        -->
+        <!-- ===================================================== -->
+        <section id="tabQuick" class="hidden space-y-6 no-print">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <!-- Left Input Card -->
+                <div class="lg:col-span-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="bg-slate-800 text-white px-5 py-3.5 flex items-center gap-3">
+                        <i class="fa-solid fa-gauge-high text-brand-400 text-lg"></i>
+                        <div>
+                            <h2 class="text-sm font-bold">Hızlı Tekil Boru Seçici & Karşılaştırıcı</h2>
+                            <p class="text-[11px] text-slate-300">Kapasite, debi veya hedef maksimum hıza göre anında analiz</p>
+                        </div>
+                    </div>
+
+                    <div class="p-5 space-y-4">
+                        <!-- Calculation Mode -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Giriş Yöntemi</label>
+                            <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-semibold">
+                                <button onclick="setQuickMode('capacity')" id="btnQuickCap" class="py-1.5 rounded bg-white text-slate-900 shadow-sm">Kapasite (kW / kcal/h)</button>
+                                <button onclick="setQuickMode('flow')" id="btnQuickFlow" class="py-1.5 rounded text-slate-600 hover:text-slate-900">Doğrudan Debi</button>
+                            </div>
+                        </div>
+
+                        <!-- Capacity Inputs -->
+                        <div id="quickCapInputs" class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Isıl Kapasite</label>
+                                <div class="flex">
+                                    <input type="number" id="qcPower" value="85" step="any" oninput="runQuickCalculator()" class="w-full border border-slate-300 rounded-l-lg px-3 py-2 text-sm font-bold font-mono-num focus:border-brand-500 focus:outline-none">
+                                    <select id="qcPowerUnit" onchange="runQuickCalculator()" class="bg-slate-100 border border-l-0 border-slate-300 rounded-r-lg px-2 text-xs font-bold text-slate-700">
+                                        <option value="kW">kW</option>
+                                        <option value="kcal">kcal/h</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Sıcaklık Farkı ΔT (°C)</label>
+                                <input type="number" id="qcDt" value="20" step="1" oninput="runQuickCalculator()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold font-mono-num focus:border-brand-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Direct Flow Inputs -->
+                        <div id="quickFlowInputs" class="hidden grid-cols-2 gap-3">
+                            <div class="col-span-2">
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Hacimsel Debi</label>
+                                <div class="flex">
+                                    <input type="number" id="qcDirectFlow" value="1.25" step="any" oninput="runQuickCalculator()" class="w-full border border-slate-300 rounded-l-lg px-3 py-2 text-sm font-bold font-mono-num focus:border-brand-500 focus:outline-none">
+                                    <select id="qcFlowUnit" onchange="runQuickCalculator()" class="bg-slate-100 border border-l-0 border-slate-300 rounded-r-lg px-3 text-xs font-bold text-slate-700">
+                                        <option value="ls">L/s</option>
+                                        <option value="m3h">m³/h</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pipe Material Selection -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Boru Tipi / Standart</label>
+                            <select id="qcPipeType" onchange="runQuickCalculator()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:border-brand-500 focus:outline-none">
+                                <!-- Populated from PIPE_STANDARDS -->
+                            </select>
+                        </div>
+
+                        <!-- Max Desired Velocity & Roughness -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Hedef Maks. Hız (m/s)</label>
+                                <input type="number" id="qcMaxV" value="1.0" step="0.05" oninput="runQuickCalculator()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold font-mono-num text-brand-700 focus:border-brand-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Pürüzlülük ε (mm)</label>
+                                <input type="number" id="qcRoughness" value="0.045" step="0.001" oninput="runQuickCalculator()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono-num focus:border-brand-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Recommended Result Highlight -->
+                        <div class="bg-gradient-to-br from-brand-50 to-teal-100/70 border-2 border-brand-500 rounded-xl p-4 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-extrabold uppercase tracking-wider text-brand-800">Önerilen İdeal Boru Çapı</span>
+                                <span class="px-2 py-0.5 rounded bg-brand-600 text-white text-[10px] font-bold" id="qcBadge">Hedef Hıza Uygun</span>
+                            </div>
+                            <div class="flex items-baseline justify-between pt-1">
+                                <div class="text-2xl font-black text-slate-900 font-mono-num" id="qcRecLabel">DN40 (1 1/2")</div>
+                                <div class="text-right font-mono-num">
+                                    <div class="text-sm font-bold text-brand-700" id="qcRecVel">V = 0.85 m/s</div>
+                                    <div class="text-xs text-slate-600" id="qcRecLoss">R = 145.2 Pa/m</div>
+                                </div>
+                            </div>
+                            <div class="text-[11px] text-slate-600 border-t border-brand-200 pt-2 flex justify-between font-mono-num">
+                                <span id="qcRecFlowInfo">Debi: 1.04 L/s (3.75 m³/h)</span>
+                                <span id="qcRecDinInfo">d_iç: 41.8 mm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Comparison Table -->
+                <div class="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="bg-slate-100 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-800">Tüm Çaplar İçin Hidrolik Hız ve Basınç Düşümü Karşılaştırma Tablosu</h3>
+                        <span class="text-[11px] text-slate-500">Yeşil: İdeal Seçim | Mavi: Düşük Hız | Kırmızı: Hedef Hız Aşıldı</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs font-mono-num">
+                            <thead>
+                                <tr class="bg-slate-800 text-white text-[10px] uppercase tracking-wider">
+                                    <th class="py-2.5 px-3">Anma Çapı</th>
+                                    <th class="py-2.5 px-3 text-center">Dış Çap × Et (mm)</th>
+                                    <th class="py-2.5 px-3 text-center">İç Çap d_iç (mm)</th>
+                                    <th class="py-2.5 px-3 text-right">Su Hızı V (m/s)</th>
+                                    <th class="py-2.5 px-3 text-right">Birim Kayıp R (Pa/m)</th>
+                                    <th class="py-2.5 px-3 text-right">Birim Kayıp (mmSS/m)</th>
+                                    <th class="py-2.5 px-3 text-center">Değerlendirme</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qcTableBody" class="divide-y divide-slate-200">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ========================================================= -->
+    <!-- MODAL: PIPE WALL THICKNESS & ROUGHNESS OVERRIDE           -->
+    <!-- ========================================================= -->
+    <div id="pipeSpecModal" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-brand-400"></i>
+                    <h3 class="text-sm font-bold">Boru Et Kalınlığı ve Pürüzlülük Ayarı</h3>
+                </div>
+                <button onclick="closePipeSpecModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4 text-xs">
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <div class="font-bold text-slate-800" id="modalPipeTitle">Hat: -</div>
+                    <div class="text-slate-500 mt-0.5" id="modalPipeStd">Standart: -</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Dış Çap D_dış (mm)</label>
+                        <input type="number" id="modalDout" step="0.1" oninput="updateModalPreview()" class="w-full border border-slate-300 rounded-lg px-3 py-2 font-mono-num font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Et Kalınlığı t (mm)</label>
+                        <input type="number" id="modalWallT" step="0.1" oninput="updateModalPreview()" class="w-full border border-slate-300 rounded-lg px-3 py-2 font-mono-num font-bold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Hesaplanan İç Çap d_iç (mm)</label>
+                        <input type="text" id="modalDinPreview" disabled class="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 font-mono-num font-extrabold text-brand-700">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Mutlak Pürüzlülük ε (mm)</label>
+                        <input type="number" id="modalRoughness" step="0.001" class="w-full border border-slate-300 rounded-lg px-3 py-2 font-mono-num font-bold">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                    <button onclick="resetPipeSpecToDefault()" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold">
+                        Standart Değerlere Sıfırla
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="closePipeSpecModal()" class="px-3 py-2 rounded-lg border border-slate-300 text-slate-600 font-semibold">İptal</button>
+                        <button onclick="savePipeSpecModal()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold">Uygula</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- JAVASCRIPT ENGINE                                         -->
+    <!-- ========================================================= -->
+    <script>
+        // =========================================================
+        // 1. EXTENDED PIPE LIBRARY (STEEL DIN/SCH40, PPRC, PEX, CU)
+        // =========================================================
+        const PIPE_STANDARDS = {
+            steel_din2440: {
+                name: "Dikişli Çelik (DIN 2440 / EN 10255)",
+                roughness: 0.045,
+                isSteel: true,
+                sizes: [
+                    { code: "DN15", label: 'DN15 (1/2")', dn: 15, dOut: 21.3, t: 2.65 },
+                    { code: "DN20", label: 'DN20 (3/4")', dn: 20, dOut: 26.9, t: 2.65 },
+                    { code: "DN25", label: 'DN25 (1")', dn: 25, dOut: 33.7, t: 3.25 },
+                    { code: "DN32", label: 'DN32 (1 1/4")', dn: 32, dOut: 42.4, t: 3.25 },
+                    { code: "DN40", label: 'DN40 (1 1/2")', dn: 40, dOut: 48.3, t: 3.25 },
+                    { code: "DN50", label: 'DN50 (2")', dn: 50, dOut: 60.3, t: 3.65 },
+                    { code: "DN65", label: 'DN65 (2 1/2")', dn: 65, dOut: 76.1, t: 3.65 },
+                    { code: "DN80", label: 'DN80 (3")', dn: 80, dOut: 88.9, t: 4.05 },
+                    { code: "DN100", label: 'DN100 (4")', dn: 100, dOut: 114.3, t: 4.50 },
+                    { code: "DN125", label: 'DN125 (5")', dn: 125, dOut: 139.7, t: 4.85 },
+                    { code: "DN150", label: 'DN150 (6")', dn: 150, dOut: 165.1, t: 4.85 },
+                    { code: "DN200", label: 'DN200 (8")', dn: 200, dOut: 219.1, t: 6.30 },
+                    { code: "DN250", label: 'DN250 (10")', dn: 250, dOut: 273.0, t: 6.30 },
+                    { code: "DN300", label: 'DN300 (12")', dn: 300, dOut: 323.9, t: 7.10 }
+                ]
+            },
+            steel_sch40: {
+                name: "Dikişsiz Çelik (Sch 40 / ASME)",
+                roughness: 0.045,
+                isSteel: true,
+                sizes: [
+                    { code: "DN15", label: 'DN15 (1/2")', dn: 15, dOut: 21.3, t: 2.77 },
+                    { code: "DN20", label: 'DN20 (3/4")', dn: 20, dOut: 26.7, t: 2.87 },
+                    { code: "DN25", label: 'DN25 (1")', dn: 25, dOut: 33.4, t: 3.38 },
+                    { code: "DN32", label: 'DN32 (1 1/4")', dn: 32, dOut: 42.2, t: 3.56 },
+                    { code: "DN40", label: 'DN40 (1 1/2")', dn: 40, dOut: 48.3, t: 3.68 },
+                    { code: "DN50", label: 'DN50 (2")', dn: 50, dOut: 60.3, t: 3.91 },
+                    { code: "DN65", label: 'DN65 (2 1/2")', dn: 65, dOut: 73.0, t: 5.16 },
+                    { code: "DN80", label: 'DN80 (3")', dn: 80, dOut: 88.9, t: 5.49 },
+                    { code: "DN100", label: 'DN100 (4")', dn: 100, dOut: 114.3, t: 6.02 },
+                    { code: "DN125", label: 'DN125 (5")', dn: 125, dOut: 141.3, t: 6.55 },
+                    { code: "DN150", label: 'DN150 (6")', dn: 150, dOut: 168.3, t: 7.11 },
+                    { code: "DN200", label: 'DN200 (8")', dn: 200, dOut: 219.1, t: 8.18 },
+                    { code: "DN250", label: 'DN250 (10")', dn: 250, dOut: 273.1, t: 9.27 },
+                    { code: "DN300", label: 'DN300 (12")', dn: 300, dOut: 323.9, t: 10.31 }
+                ]
+            },
+            pprc_pn10: {
+                name: "PPRC Boru (PN10 - SDR11)",
+                roughness: 0.007,
+                isSteel: false,
+                sizes: [
+                    { code: "Ø20", label: "Ø20 mm", dn: 15, dOut: 20.0, t: 1.9 },
+                    { code: "Ø25", label: "Ø25 mm", dn: 20, dOut: 25.0, t: 2.3 },
+                    { code: "Ø32", label: "Ø32 mm", dn: 25, dOut: 32.0, t: 2.9 },
+                    { code: "Ø40", label: "Ø40 mm", dn: 32, dOut: 40.0, t: 3.7 },
+                    { code: "Ø50", label: "Ø50 mm", dn: 40, dOut: 50.0, t: 4.6 },
+                    { code: "Ø63", label: "Ø63 mm", dn: 50, dOut: 63.0, t: 5.8 },
+                    { code: "Ø75", label: "Ø75 mm", dn: 65, dOut: 75.0, t: 6.8 },
+                    { code: "Ø90", label: "Ø90 mm", dn: 80, dOut: 90.0, t: 8.2 },
+                    { code: "Ø110", label: "Ø110 mm", dn: 100, dOut: 110.0, t: 10.0 },
+                    { code: "Ø125", label: "Ø125 mm", dn: 125, dOut: 125.0, t: 11.4 },
+                    { code: "Ø160", label: "Ø160 mm", dn: 150, dOut: 160.0, t: 14.6 }
+                ]
+            },
+            pprc_pn16: {
+                name: "PPRC Boru (PN16 - SDR7.4)",
+                roughness: 0.007,
+                isSteel: false,
+                sizes: [
+                    { code: "Ø20", label: "Ø20 mm", dn: 15, dOut: 20.0, t: 2.8 },
+                    { code: "Ø25", label: "Ø25 mm", dn: 20, dOut: 25.0, t: 3.5 },
+                    { code: "Ø32", label: "Ø32 mm", dn: 25, dOut: 32.0, t: 4.4 },
+                    { code: "Ø40", label: "Ø40 mm", dn: 32, dOut: 40.0, t: 5.5 },
+                    { code: "Ø50", label: "Ø50 mm", dn: 40, dOut: 50.0, t: 6.9 },
+                    { code: "Ø63", label: "Ø63 mm", dn: 50, dOut: 63.0, t: 8.6 },
+                    { code: "Ø75", label: "Ø75 mm", dn: 65, dOut: 75.0, t: 10.3 },
+                    { code: "Ø90", label: "Ø90 mm", dn: 80, dOut: 90.0, t: 12.3 },
+                    { code: "Ø110", label: "Ø110 mm", dn: 100, dOut: 110.0, t: 15.1 }
+                ]
+            },
+            pprc_pn20: {
+                name: "PPRC Boru (PN20 - SDR6)",
+                roughness: 0.007,
+                isSteel: false,
+                sizes: [
+                    { code: "Ø20", label: "Ø20 mm", dn: 15, dOut: 20.0, t: 3.4 },
+                    { code: "Ø25", label: "Ø25 mm", dn: 20, dOut: 25.0, t: 4.2 },
+                    { code: "Ø32", label: "Ø32 mm", dn: 25, dOut: 32.0, t: 5.4 },
+                    { code: "Ø40", label: "Ø40 mm", dn: 32, dOut: 40.0, t: 6.7 },
+                    { code: "Ø50", label: "Ø50 mm", dn: 40, dOut: 50.0, t: 8.3 },
+                    { code: "Ø63", label: "Ø63 mm", dn: 50, dOut: 63.0, t: 10.5 },
+                    { code: "Ø75", label: "Ø75 mm", dn: 65, dOut: 75.0, t: 12.5 },
+                    { code: "Ø90", label: "Ø90 mm", dn: 80, dOut: 90.0, t: 15.0 },
+                    { code: "Ø110", label: "Ø110 mm", dn: 100, dOut: 110.0, t: 18.3 }
+                ]
+            },
+            pprc_pn25: {
+                name: "PPRC Boru (PN25 - Kompozit/Folyo)",
+                roughness: 0.007,
+                isSteel: false,
+                sizes: [
+                    { code: "Ø20", label: "Ø20 mm", dn: 15, dOut: 20.0, t: 2.8 },
+                    { code: "Ø25", label: "Ø25 mm", dn: 20, dOut: 25.0, t: 3.5 },
+                    { code: "Ø32", label: "Ø32 mm", dn: 25, dOut: 32.0, t: 4.4 },
+                    { code: "Ø40", label: "Ø40 mm", dn: 32, dOut: 40.0, t: 5.5 },
+                    { code: "Ø50", label: "Ø50 mm", dn: 40, dOut: 50.0, t: 6.9 },
+                    { code: "Ø63", label: "Ø63 mm", dn: 50, dOut: 63.0, t: 8.6 },
+                    { code: "Ø75", label: "Ø75 mm", dn: 65, dOut: 75.0, t: 10.3 },
+                    { code: "Ø90", label: "Ø90 mm", dn: 80, dOut: 90.0, t: 12.3 },
+                    { code: "Ø110", label: "Ø110 mm", dn: 100, dOut: 110.0, t: 15.1 }
+                ]
+            },
+            pex_pe100: {
+                name: "PEX / PE100 Boru (SDR11)",
+                roughness: 0.007,
+                isSteel: false,
+                sizes: [
+                    { code: "Ø16", label: "Ø16 mm", dn: 12, dOut: 16.0, t: 2.0 },
+                    { code: "Ø20", label: "Ø20 mm", dn: 15, dOut: 20.0, t: 2.0 },
+                    { code: "Ø25", label: "Ø25 mm", dn: 20, dOut: 25.0, t: 2.3 },
+                    { code: "Ø32", label: "Ø32 mm", dn: 25, dOut: 32.0, t: 3.0 },
+                    { code: "Ø40", label: "Ø40 mm", dn: 32, dOut: 40.0, t: 3.7 },
+                    { code: "Ø50", label: "Ø50 mm", dn: 40, dOut: 50.0, t: 4.6 },
+                    { code: "Ø63", label: "Ø63 mm", dn: 50, dOut: 63.0, t: 5.8 },
+                    { code: "Ø75", label: "Ø75 mm", dn: 65, dOut: 75.0, t: 6.8 },
+                    { code: "Ø90", label: "Ø90 mm", dn: 80, dOut: 90.0, t: 8.2 },
+                    { code: "Ø110", label: "Ø110 mm", dn: 100, dOut: 110.0, t: 10.0 },
+                    { code: "Ø160", label: "Ø160 mm", dn: 150, dOut: 160.0, t: 14.6 }
+                ]
+            },
+            copper_en1057: {
+                name: "Bakır Boru (EN 1057)",
+                roughness: 0.0015,
+                isSteel: false,
+                sizes: [
+                    { code: "Ø15", label: "Ø15×1.0 mm", dn: 12, dOut: 15.0, t: 1.0 },
+                    { code: "Ø18", label: "Ø18×1.0 mm", dn: 15, dOut: 18.0, t: 1.0 },
+                    { code: "Ø22", label: "Ø22×1.0 mm", dn: 20, dOut: 22.0, t: 1.0 },
+                    { code: "Ø28", label: "Ø28×1.5 mm", dn: 25, dOut: 28.0, t: 1.5 },
+                    { code: "Ø35", label: "Ø35×1.5 mm", dn: 32, dOut: 35.0, t: 1.5 },
+                    { code: "Ø42", label: "Ø42×1.5 mm", dn: 40, dOut: 42.0, t: 1.5 },
+                    { code: "Ø54", label: "Ø54×2.0 mm", dn: 50, dOut: 54.0, t: 2.0 },
+                    { code: "Ø76.1", label: "Ø76.1×2.0 mm", dn: 65, dOut: 76.1, t: 2.0 },
+                    { code: "Ø88.9", label: "Ø88.9×2.0 mm", dn: 80, dOut: 88.9, t: 2.0 },
+                    { code: "Ø108", label: "Ø108×2.5 mm", dn: 100, dOut: 108.0, t: 2.5 }
+                ]
+            }
+        };
+
+        // =========================================================
+        // 2. STRICTLY ALPHABETICAL FITTINGS & TERMINAL LIBRARY
+        //    (No 1., 2. prefixes; numbers first, then A-Z)
+        // =========================================================
+        const DEFAULT_FITTINGS_LIB = [
+            { name: "45° Dirsek (Standart)", calcType: "zeta", val: 0.35 },
+            { name: "90° Dirsek (Dar Radyus)", calcType: "zeta", val: 0.75 },
+            { name: "90° Dirsek (Geniş Radyus)", calcType: "zeta", val: 0.45 },
+            { name: "Aparey (Birim Isıtıcı) Direnci", calcType: "kpa", val: 15.0 },
+            { name: "Balans Vanası (Statik)", calcType: "zeta", val: 3.50 },
+            { name: "Boyler Serpantin (İç Ünite) Direnci", calcType: "kpa", val: 18.0 },
+            { name: "Çekvalf (Çalpara Tip)", calcType: "zeta", val: 2.00 },
+            { name: "Çekvalf (Yaylı Tip)", calcType: "zeta", val: 4.00 },
+            { name: "Fan Coil Batarya Direnci", calcType: "kpa", val: 20.0 },
+            { name: "Hava Ayırıcı / Tortu Tutucu", calcType: "zeta", val: 1.50 },
+            { name: "Kelebek Vana", calcType: "zeta", val: 0.60 },
+            { name: "Kollektör Giriş / Çıkış Ağzı", calcType: "zeta", val: 1.00 },
+            { name: "Küresel Vana (Tam Geçişli)", calcType: "zeta", val: 0.20 },
+            { name: "Pislik Tutucu (Y Tipi)", calcType: "zeta", val: 2.50 },
+            { name: "Radyatör (Panel/Döküm) Direnci", calcType: "kpa", val: 5.0 },
+            { name: "Redüksiyon (Daralma/Genişleme)", calcType: "zeta", val: 0.40 },
+            { name: "Sürgülü (Şiber) Vana", calcType: "zeta", val: 0.25 },
+            { name: "Te - Ayrılma (90° Branşman)", calcType: "zeta", val: 1.30 },
+            { name: "Te - Birleşme", calcType: "zeta", val: 0.90 },
+            { name: "Te - Düz Geçiş", calcType: "zeta", val: 0.30 },
+            { name: "Üç Yollu Motorlu Vana", calcType: "zeta", val: 4.50 },
+            { name: "Yerden Isıtma Kollektör ve Devre Direnci", calcType: "kpa", val: 25.0 }
+        ];
+
+        // =========================================================
+        // 3. APPLICATION STATE & FLUID CONSTANTS
+        // =========================================================
+        const GRAVITY = 9.80665;
+        const KCAL_FACTOR = 859.845; // 1 kW = 859.845 kcal/h
+
+        let appState = {
+            systemMode: 'closed', // 'closed' | 'open'
+            powerUnit: 'kW',      // 'kW' | 'kcal'
+            waterTemp: 80,        // 80 | 45 | 10
+            rho: 972,             // kg/m3
+            nu: 0.365e-6,         // m2/s
+            cp: 4.195,            // kJ/(kg.K)
+            activeTab: 'tabProject',
+            treeLayout: 'bottom', // 'bottom' | 'side' | 'hide'
+            printIncludeTree: true,
+            quickMode: 'capacity',
+            editingPipeUid: null,
+            rows: [],             // Starts completely empty as requested!
+            calcResults: {},      // uid -> computed hydraulic metrics
+            pumpZones: {},        // pumpId -> { totalKw, flowLs, flowM3h, maxPa, maxMss, pathIds }
+            systemCritical: { maxPa: 0, maxMss: 0, pathIds: [], pathUids: new Set() },
+            customLibrary: []
+        };
+
+        function loadCustomLibrary() {
+            try {
+                const saved = localStorage.getItem('mekanik_custom_fittings_v2');
+                if (saved) appState.customLibrary = JSON.parse(saved);
+            } catch (e) {
+                appState.customLibrary = [];
+            }
+        }
+
+        function saveCustomItemToLibrary(name, calcType, val) {
+            if (!name) return;
+            const existingIdx = appState.customLibrary.findIndex(x => x.name.toLowerCase() === name.toLowerCase());
+            if (existingIdx >= 0) {
+                appState.customLibrary[existingIdx] = { name, calcType, val, isCustom: true };
+            } else {
+                appState.customLibrary.push({ name, calcType, val, isCustom: true });
+            }
+            try {
+                localStorage.setItem('mekanik_custom_fittings_v2', JSON.stringify(appState.customLibrary));
+            } catch (e) {}
+        }
+
+        function getFullFittingsLibrary() {
+            const combined = [...DEFAULT_FITTINGS_LIB, ...appState.customLibrary];
+            return combined.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+        }
+
+        function uid() {
+            return 'n_' + Math.random().toString(36).substring(2, 10);
+        }
+
+        // =========================================================
+        // 4. COLEBROOK-WHITE HYDRAULIC CALCULATION ENGINE
+        // =========================================================
+        function solveColebrookWhite(re, relRoughness) {
+            if (re <= 0) return 0;
+            if (re < 2300) return 64.0 / re;
+            // Initial Swamee-Jain guess
+            const term = (relRoughness / 3.7) + (5.74 / Math.pow(re, 0.9));
+            let f = 0.25 / Math.pow(Math.log10(term), 2);
+            // 6 Newton/Fixed-point iterations for exact Colebrook-White
+            for (let i = 0; i < 6; i++) {
+                const rhs = -2.0 * Math.log10((relRoughness / 3.7) + (2.51 / (re * Math.sqrt(f))));
+                f = 1.0 / (rhs * rhs);
+            }
+            return f;
+        }
+
+        function computeSegmentHydraulics(flowLs, dInMm, roughnessMm) {
+            if (flowLs <= 0 || dInMm <= 0) {
+                return { v: 0, re: 0, lambda: 0, dynPa: 0, rPaM: 0, rMmssM: 0 };
+            }
+            const qM3s = flowLs / 1000.0;
+            const dM = dInMm / 1000.0;
+            const area = (Math.PI * dM * dM) / 4.0;
+            const v = qM3s / area;
+            const re = (v * dM) / appState.nu;
+            const relRough = (roughnessMm / 1000.0) / dM;
+            const lambda = solveColebrookWhite(re, relRough);
+            const dynPa = 0.5 * appState.rho * v * v;
+            const rPaM = lambda * (1.0 / dM) * dynPa;
+            const rMmssM = rPaM / GRAVITY;
+            return { v, re, lambda, dynPa, rPaM, rMmssM };
+        }
+
+        function getPipeSpec(row) {
+            const std = PIPE_STANDARDS[row.pipeType] || PIPE_STANDARDS.steel_din2440;
+            const sizeObj = std.sizes.find(s => s.code === row.sizeCode) || std.sizes[0];
+            const dOut = row.customDout !== null && row.customDout !== undefined ? Number(row.customDout) : sizeObj.dOut;
+            const wallT = row.customWallT !== null && row.customWallT !== undefined ? Number(row.customWallT) : sizeObj.t;
+            const roughness = row.customRoughness !== null && row.customRoughness !== undefined ? Number(row.customRoughness) : std.roughness;
+            const dIn = Math.max(1.0, dOut - 2.0 * wallT);
+            return {
+                stdName: std.name,
+                sizeCode: sizeObj.code,
+                sizeLabel: sizeObj.label,
+                dn: sizeObj.dn,
+                dOut,
+                wallT,
+                dIn,
+                roughness,
+                isCustomSpec: (row.customDout !== null || row.customWallT !== null || row.customRoughness !== null)
+            };
+        }
+
+        // Stepped Velocity Limit Rule:
+        // Collector: target 0.2 m/s, max allowed 0.5 m/s
+        // Pipe & Pump: <= DN50 max 1.0 m/s, > DN50 max 1.5 m/s
+        function findOptimalSizeCode(pipeTypeKey, flowLs, nodeType, customTargetV = null) {
+            const std = PIPE_STANDARDS[pipeTypeKey] || PIPE_STANDARDS.steel_din2440;
+            if (flowLs <= 0) return std.sizes[0].code;
+
+            for (let i = 0; i < std.sizes.length; i++) {
+                const s = std.sizes[i];
+                const dIn = s.dOut - 2.0 * s.t;
+                const hyd = computeSegmentHydraulics(flowLs, dIn, std.roughness);
+                
+                let limitV = 1.0;
+                if (customTargetV !== null) {
+                    limitV = customTargetV;
+                } else if (nodeType === 'kollektor') {
+                    limitV = 0.22; // Targets ~0.2 m/s
+                } else {
+                    limitV = s.dn <= 50 ? 1.0 : 1.5;
+                }
+
+                if (hyd.v <= limitV) {
+                    return s.code;
+                }
+            }
+            return std.sizes[std.sizes.length - 1].code;
+        }
+
+        function evaluateVelocityStatus(v, dn, nodeType) {
+            if (v <= 0) {
+                return { status: 'idle', badgeClass: 'bg-slate-100 text-slate-500 border-slate-200', text: 'Debi Yok', limit: 1.0 };
+            }
+            if (nodeType === 'kollektor') {
+                if (v <= 0.25) {
+                    return { status: 'ok', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-300', text: 'İdeal (≤0.25)', limit: 0.5 };
+                } else if (v <= 0.50) {
+                    return { status: 'warn', badgeClass: 'bg-amber-50 text-amber-700 border-amber-300', text: 'Kabul (≤0.50)', limit: 0.5 };
+                } else {
+                    return { status: 'danger', badgeClass: 'bg-red-100 text-red-700 border-red-400', text: 'Denge Riski (>0.5)', limit: 0.5 };
+                }
+            } else {
+                const limit = dn <= 50 ? 1.0 : 1.5;
+                if (v <= limit) {
+                    return { status: 'ok', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-300', text: `Uygun (≤${limit})`, limit };
+                } else if (v <= limit * 1.15) {
+                    return { status: 'warn', badgeClass: 'bg-amber-50 text-amber-700 border-amber-300', text: `Sınırda (>${limit})`, limit };
+                } else {
+                    return { status: 'danger', badgeClass: 'bg-red-100 text-red-700 border-red-400', text: `Yüksek Hız (>${limit})`, limit };
+                }
+            }
+        }
+
+        // =========================================================
+        // 5. FULL TREE & MULTI-PUMP CRITICAL PATH SOLVER
+        // =========================================================
+        function recalculateProjectTree() {
+            const calcResults = {};
+            const idMap = {};
+            const childrenMap = {};
+
+            appState.rows.forEach(r => {
+                idMap[r.id] = r;
+                const pId = r.parentId || '';
+                if (!childrenMap[pId]) childrenMap[pId] = [];
+                childrenMap[pId].push(r);
+            });
+
+            // Pass 1: Bottom-Up aggregation of kW / Flow for parents (unless manually overridden by user)
+            const visited = new Set();
+            function sumChildrenBottomUp(row) {
+                if (visited.has(row.uid)) return { kw: Number(row.kw) || 0, flowLs: Number(row.directFlowLs) || 0 };
+                visited.add(row.uid);
+
+                const kids = childrenMap[row.id] || [];
+                if (kids.length > 0) {
+                    let sumKw = 0;
+                    let sumFlow = 0;
+                    kids.forEach(k => {
+                        const childTotals = sumChildrenBottomUp(k);
+                        sumKw += childTotals.kw;
+                        sumFlow += childTotals.flowLs;
+                    });
+                    // Update parent automatically if not locked in manual override mode
+                    if (!row.manualCapacityOverride) {
+                        row.kw = Number(sumKw.toFixed(2));
+                        row.directFlowLs = Number(sumFlow.toFixed(3));
+                    }
+                }
+                return { kw: Number(row.kw) || 0, flowLs: Number(row.directFlowLs) || 0 };
+            }
+
+            // Start from roots
+            const roots = appState.rows.filter(r => !r.parentId || !idMap[r.parentId]);
+            roots.forEach(root => sumChildrenBottomUp(root));
+            // Catch any unvisited circular nodes safely
+            appState.rows.forEach(r => { if (!visited.has(r.uid)) sumChildrenBottomUp(r); });
+
+            // Pass 2: Segment Hydraulic Calculations
+            appState.rows.forEach(r => {
+                const dt = Math.max(0.5, Number(r.dt) || 20);
+                let flowLs = 0;
+
+                if (appState.systemMode === 'closed') {
+                    const kw = Math.max(0, Number(r.kw) || 0);
+                    // Q (L/s) = kW / (cp * dT) * (1000 / rho)
+                    flowLs = (kw / (appState.cp * dt)) * (1000.0 / appState.rho);
+                } else {
+                    flowLs = Math.max(0, Number(r.directFlowLs) || 0);
+                }
+                const flowM3h = flowLs * 3.6;
+
+                const spec = getPipeSpec(r);
+                const hyd = computeSegmentHydraulics(flowLs, spec.dIn, spec.roughness);
+                const velEval = evaluateVelocityStatus(hyd.v, spec.dn, r.type);
+
+                const lengthM = Math.max(0, Number(r.length) || 0);
+                const pipeFrictionPa = hyd.rPaM * lengthM;
+
+                // Local Fittings & Terminal Units Loss
+                let localLossPa = 0;
+                let totalZeta = 0;
+                r.fittings.forEach(f => {
+                    const qty = Math.max(0, Number(f.qty) || 0);
+                    const val = Math.max(0, Number(f.val) || 0);
+                    if (f.calcType === 'zeta') {
+                        totalZeta += val * qty;
+                        localLossPa += (val * hyd.dynPa) * qty;
+                    } else if (f.calcType === 'kv') {
+                        if (val > 0) {
+                            const zetaEq = (0.0016 * Math.pow(spec.dIn, 4)) / (val * val);
+                            totalZeta += zetaEq * qty;
+                            localLossPa += (zetaEq * hyd.dynPa) * qty;
+                        }
+                    } else if (f.calcType === 'kpa') {
+                        localLossPa += (val * 1000.0) * qty;
+                    } else if (f.calcType === 'mss') {
+                        localLossPa += (val * GRAVITY * 1000.0) * qty;
+                    }
+                });
+
+                // Open system static elevation & required outlet pressure
+                let staticPa = 0;
+                if (appState.systemMode === 'open') {
+                    const hzM = Number(r.hz) || 0;
+                    const hmMss = Number(r.hm) || 0;
+                    staticPa = (hzM + hmMss) * GRAVITY * 1000.0;
+                }
+
+                const segmentTotalPa = pipeFrictionPa + localLossPa + staticPa;
+                const segmentTotalMss = segmentTotalPa / (GRAVITY * 1000.0);
+
+                calcResults[r.uid] = {
+                    flowLs,
+                    flowM3h,
+                    spec,
+                    hyd,
+                    velEval,
+                    pipeFrictionPa,
+                    localLossPa,
+                    localLossKpa: localLossPa / 1000.0,
+                    staticPa,
+                    segmentTotalPa,
+                    segmentTotalKpa: segmentTotalPa / 1000.0,
+                    segmentTotalMss,
+                    totalZeta,
+                    hasChildren: (childrenMap[r.id] && childrenMap[r.id].length > 0),
+                    isZoneCritical: false,
+                    isSystemCritical: false
+                };
+            });
+
+            // Pass 3: Critical Path Analysis (Both Per-Pump Zone and Overall System)
+            const leaves = appState.rows.filter(r => !(childrenMap[r.id] && childrenMap[r.id].length > 0));
+            const pumpZones = {};
+            let sysMaxPa = -1;
+            let sysCritIds = [];
+            let sysCritUids = new Set();
+
+            leaves.forEach(leaf => {
+                // 3A. Full root-to-leaf path for overall system critical path
+                let curr = leaf;
+                let fullPa = 0;
+                let fullIds = [];
+                let fullUids = [];
+                const guard = new Set();
+
+                while (curr && !guard.has(curr.uid)) {
+                    guard.add(curr.uid);
+                    fullPa += calcResults[curr.uid].segmentTotalPa;
+                    fullIds.unshift(curr.id);
+                    fullUids.push(curr.uid);
+                    curr = idMap[curr.parentId];
+                }
+
+                if (fullPa > sysMaxPa && fullUids.length > 0) {
+                    sysMaxPa = fullPa;
+                    sysCritIds = fullIds;
+                    sysCritUids = new Set(fullUids);
+                }
+
+                // 3B. Pump Zone path (From leaf up to its nearest ancestor Pump Circuit)
+                curr = leaf;
+                let zonePa = 0;
+                let zoneIds = [];
+                let zoneUids = [];
+                const guardPump = new Set();
+
+                while (curr && !guardPump.has(curr.uid)) {
+                    guardPump.add(curr.uid);
+                    zonePa += calcResults[curr.uid].segmentTotalPa;
+                    zoneIds.unshift(curr.id);
+                    zoneUids.push(curr.uid);
+
+                    if (curr.type === 'pompa') {
+                        const pId = curr.id;
+                        if (!pumpZones[pId] || zonePa > pumpZones[pId].maxPa) {
+                            pumpZones[pId] = {
+                                pumpUid: curr.uid,
+                                pumpId: pId,
+                                pumpName: curr.name,
+                                parentId: curr.parentId || '-',
+                                maxPa: zonePa,
+                                maxKpa: zonePa / 1000.0,
+                                maxMss: zonePa / (GRAVITY * 1000.0),
+                                pathIds: [...zoneIds],
+                                pathUids: [...zoneUids]
+                            };
+                        }
+                        break;
+                    }
+                    curr = idMap[curr.parentId];
+                }
+            });
+
+            // Also ensure any standalone pump with no children is registered in pumpZones
+            appState.rows.filter(r => r.type === 'pompa').forEach(p => {
+                if (!pumpZones[p.id]) {
+                    const segPa = calcResults[p.uid].segmentTotalPa;
+                    pumpZones[p.id] = {
+                        pumpUid: p.uid,
+                        pumpId: p.id,
+                        pumpName: p.name,
+                        parentId: p.parentId || '-',
+                        maxPa: segPa,
+                        maxKpa: segPa / 1000.0,
+                        maxMss: segPa / (GRAVITY * 1000.0),
+                        pathIds: [p.id],
+                        pathUids: [p.uid]
+                    };
+                }
+            });
+
+            // Mark critical flags
+            Object.values(pumpZones).forEach(pz => {
+                pz.pathUids.forEach(u => {
+                    if (calcResults[u]) calcResults[u].isZoneCritical = true;
+                });
+            });
+            sysCritUids.forEach(u => {
+                if (calcResults[u]) calcResults[u].isSystemCritical = true;
+            });
+
+            appState.calcResults = calcResults;
+            appState.pumpZones = pumpZones;
+            appState.systemCritical = {
+                maxPa: Math.max(0, sysMaxPa),
+                maxKpa: Math.max(0, sysMaxPa) / 1000.0,
+                maxMss: Math.max(0, sysMaxPa) / (GRAVITY * 1000.0),
+                pathIds: sysCritIds,
+                pathUids: sysCritUids
+            };
+        }
+
+        // =========================================================
+        // 6. UI RENDERING: MAIN TABLE, ACCORDION & KPIS
+        // =========================================================
+        function getOrderedTreeRows() {
+            const ordered = [];
+            const idMap = {};
+            const childrenMap = {};
+
+            appState.rows.forEach(r => {
+                idMap[r.id] = r;
+                const pId = r.parentId || '';
+                if (!childrenMap[pId]) childrenMap[pId] = [];
+                childrenMap[pId].push(r);
+            });
+
+            const visited = new Set();
+            function traverse(row, depth) {
+                if (visited.has(row.uid)) return;
+                visited.add(row.uid);
+                row.depth = depth;
+                ordered.push(row);
+                const kids = childrenMap[row.id] || [];
+                kids.forEach(k => traverse(k, depth + 1));
+            }
+
+            const roots = appState.rows.filter(r => !r.parentId || !idMap[r.parentId]);
+            roots.forEach(root => traverse(root, 0));
+            appState.rows.forEach(r => { if (!visited.has(r.uid)) traverse(r, 0); });
+
+            return ordered;
+        }
+
+        function formatPowerDisplay(kwVal) {
+            const val = Number(kwVal) || 0;
+            if (appState.powerUnit === 'kcal') {
+                return Math.round(val * KCAL_FACTOR);
+            }
+            return Number(val.toFixed(2));
+        }
+
+        function parsePowerInputToKw(inputVal) {
+            const val = Number(inputVal) || 0;
+            if (appState.powerUnit === 'kcal') {
+                return val / KCAL_FACTOR;
+            }
+            return val;
+        }
+
+        function renderAll() {
+            recalculateProjectTree();
+            renderKpiSummary();
+            renderCalculationTable();
+            renderCssSystemTree();
+            renderBomTables();
+            updatePrintHeaders();
+        }
+
+        function renderKpiSummary() {
+            const idMap = {};
+            appState.rows.forEach(r => idMap[r.id] = r);
+            const roots = appState.rows.filter(r => !r.parentId || !idMap[r.parentId]);
+
+            let totalKw = 0;
+            let totalFlowLs = 0;
+            roots.forEach(r => {
+                totalKw += Number(r.kw) || 0;
+                totalFlowLs += appState.calcResults[r.uid]?.flowLs || 0;
+            });
+
+            const totalFlowM3h = totalFlowLs * 3.6;
+            document.getElementById('kpiTotalFlow').textContent = `${totalFlowLs.toFixed(2)} L/s (${totalFlowM3h.toFixed(2)} m³/h)`;
+            if (appState.powerUnit === 'kcal') {
+                document.getElementById('kpiTotalPower').textContent = `Toplam Yük: ${Math.round(totalKw * KCAL_FACTOR).toLocaleString('tr-TR')} kcal/h (${totalKw.toFixed(1)} kW)`;
+            } else {
+                document.getElementById('kpiTotalPower').textContent = `Toplam Yük: ${totalKw.toFixed(1)} kW (${Math.round(totalKw * KCAL_FACTOR).toLocaleString('tr-TR')} kcal/h)`;
+            }
+
+            // Pump Zones KPI
+            const pumps = Object.values(appState.pumpZones);
+            document.getElementById('kpiPumpCount').textContent = `${pumps.length} Pompa Devresi`;
+            if (pumps.length > 0) {
+                const pSummary = pumps.map(p => `${p.pumpId}: ${p.maxMss.toFixed(2)} mSS`).join(' | ');
+                document.getElementById('kpiPumpDetail').textContent = pSummary;
+            } else {
+                document.getElementById('kpiPumpDetail').textContent = 'Henüz pompa devresi eklenmedi';
+            }
+
+            // Critical Path KPI
+            const crit = appState.systemCritical;
+            document.getElementById('kpiCriticalHead').textContent = `${crit.maxMss.toFixed(2)} mSS (${crit.maxKpa.toFixed(1)} kPa)`;
+            document.getElementById('kpiCriticalPath').textContent = crit.pathIds.length > 0 ? `Güzergah: ${crit.pathIds.join(' ➔ ')}` : 'Güzergah: -';
+
+            // Velocity Status KPI
+            let dangerCount = 0;
+            let warnCount = 0;
+            appState.rows.forEach(r => {
+                const st = appState.calcResults[r.uid]?.velEval.status;
+                if (st === 'danger') dangerCount++;
+                else if (st === 'warn') warnCount++;
+            });
+
+            const statusEl = document.getElementById('kpiVelocityStatus');
+            const iconBox = document.getElementById('kpiVelocityIcon');
+            if (appState.rows.length === 0) {
+                statusEl.textContent = 'Veri Bekleniyor';
+                statusEl.className = 'text-sm font-bold text-slate-500 mt-1';
+            } else if (dangerCount > 0) {
+                statusEl.textContent = `${dangerCount} Hatta Hız Sınırı Aşıldı!`;
+                statusEl.className = 'text-sm font-extrabold text-red-600 mt-1';
+                iconBox.className = 'w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center text-lg';
+                iconBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else if (warnCount > 0) {
+                statusEl.textContent = `${warnCount} Hat Sınır Hıza Yakın`;
+                statusEl.className = 'text-sm font-bold text-amber-600 mt-1';
+                iconBox.className = 'w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-lg';
+                iconBox.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>';
+            } else {
+                statusEl.textContent = 'Tüm Hatlar İdeal Hız Sınırında';
+                statusEl.className = 'text-sm font-bold text-emerald-600 mt-1';
+                iconBox.className = 'w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg';
+                iconBox.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            }
+        }
+
+        function renderCalculationTable() {
+            const tbody = document.getElementById('calcTableBody');
+            const emptyPanel = document.getElementById('emptyStatePanel');
+
+            // Toggle Open/Closed column headers
+            document.querySelectorAll('.col-closed').forEach(el => {
+                el.classList.toggle('hidden', appState.systemMode !== 'closed');
+            });
+            document.querySelectorAll('.col-open').forEach(el => {
+                el.classList.toggle('hidden', appState.systemMode !== 'open');
+            });
+            document.getElementById('thPowerUnit').textContent = appState.powerUnit === 'kcal' ? 'Kapasite (kcal/h)' : 'Kapasite (kW)';
+
+            if (appState.rows.length === 0) {
+                tbody.innerHTML = '';
+                emptyPanel.classList.remove('hidden');
+                return;
+            }
+            emptyPanel.classList.add('hidden');
+
+            const orderedRows = getOrderedTreeRows();
+            let html = '';
+
+            orderedRows.forEach(r => {
+                const res = appState.calcResults[r.uid];
+                const spec = res.spec;
+                const std = PIPE_STANDARDS[r.pipeType] || PIPE_STANDARDS.steel_din2440;
+
+                // Row background class
+                let trClass = 'hover:bg-slate-50/90 transition-colors';
+                if (r.type === 'kollektor') trClass += ' collector-row';
+                else if (r.type === 'pompa') trClass += ' pump-row';
+                else if (res.isSystemCritical || res.isZoneCritical) trClass += ' critical-path-row';
+
+                // Parent selector options (exclude self)
+                const parentOptions = appState.rows
+                    .filter(other => other.uid !== r.uid)
+                    .map(other => `<option value="${other.id}" ${r.parentId === other.id ? 'selected' : ''}>${other.id}</option>`)
+                    .join('');
+
+                // Pipe Standard options
+                const pipeStdOptions = Object.keys(PIPE_STANDARDS).map(k => 
+                    `<option value="${k}" ${r.pipeType === k ? 'selected' : ''}>${PIPE_STANDARDS[k].name}</option>`
+                ).join('');
+
+                // Pipe Size options
+                const sizeOptions = std.sizes.map(s => 
+                    `<option value="${s.code}" ${r.sizeCode === s.code ? 'selected' : ''}>${s.label}</option>`
+                ).join('');
+
+                // Pump Zone Head badge if row is a pump
+                const pz = appState.pumpZones[r.id];
+                const pumpBadgeHtml = (r.type === 'pompa' && pz)
+                    ? `<div class="text-[10px] font-extrabold text-sky-700 bg-sky-100 border border-sky-300 rounded px-1.5 py-0.5 mt-0.5 inline-block" title="Bu pompa devresinin basması gereken toplam yük">Zon Hm: ${pz.maxMss.toFixed(2)} mSS</div>`
+                    : '';
+
+                const critBadgeHtml = (res.isSystemCritical)
+                    ? `<span class="ml-1 px-1.5 py-0.5 text-[9px] font-extrabold uppercase bg-red-600 text-white rounded shadow-sm">KRİTİK HAT</span>`
+                    : (res.isZoneCritical ? `<span class="ml-1 px-1.5 py-0.5 text-[9px] font-bold uppercase bg-orange-500 text-white rounded">Zon Kritik</span>` : '');
+
+                // Auto-sum indicator if row has children
+                const autoSumResetBtn = (res.hasChildren && r.manualCapacityOverride)
+                    ? `<button onclick="resetParentToAutoSum('${r.uid}')" class="ml-1 text-amber-600 hover:text-amber-800 no-print" title="Manuel değer girildi. Alt dalların toplamına geri dönmek için tıklayın"><i class="fa-solid fa-arrows-rotate text-[10px]"></i></button>`
+                    : (res.hasChildren ? `<span class="ml-1 text-[9px] text-slate-400 no-print" title="Alt dallardan otomatik toplandı (İsterseniz üzerine tıklayıp manuel değer girebilirsiniz)">(Σ)</span>` : '');
+
+                html += `
+                    <tr id="row_${r.uid}" class="${trClass}">
+                        <!-- 1. Accordion Fittings Button -->
+                        <td class="py-2 px-2 text-center no-print">
+                            <button onclick="toggleRowAccordion('${r.uid}')" class="w-7 h-7 rounded-lg ${r.expanded ? 'bg-slate-800 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'} flex items-center justify-center mx-auto transition shadow-sm" title="Bu hatta Fittings, Vana veya Cihaz Direnci ekle">
+                                <i class="fa-solid ${r.expanded ? 'fa-chevron-up' : 'fa-screwdriver-wrench'} text-[11px]"></i>
+                            </button>
+                            ${r.fittings.length > 0 ? `<div class="text-[9px] font-extrabold text-brand-700 mt-0.5">${r.fittings.length} Ek</div>` : ''}
+                        </td>
+
+                        <!-- 2. Hat ID -->
+                        <td class="py-2 px-2 tree-indent-${Math.min(r.depth || 0, 5)}">
+                            <div class="flex items-center">
+                                <input type="text" value="${r.id}" onchange="updateRowField('${r.uid}', 'id', this.value)" class="w-20 bg-white/80 border border-slate-300 rounded px-1.5 py-1 font-mono-num font-bold text-slate-900 text-xs focus:border-brand-500 focus:outline-none">
+                                ${critBadgeHtml}
+                            </div>
+                        </td>
+
+                        <!-- 3. Parent ID -->
+                        <td class="py-2 px-2">
+                            <select onchange="updateRowField('${r.uid}', 'parentId', this.value)" class="w-24 bg-white border border-slate-300 rounded px-1.5 py-1 text-xs font-mono-num text-slate-800 focus:border-brand-500 focus:outline-none">
+                                <option value="">- KÖK (ROOT) -</option>
+                                ${parentOptions}
+                            </select>
+                        </td>
+
+                        <!-- 4. Node Type -->
+                        <td class="py-2 px-2">
+                            <select onchange="updateRowField('${r.uid}', 'type', this.value)" class="w-28 bg-white border border-slate-300 rounded px-1.5 py-1 text-[11px] font-bold ${r.type === 'kollektor' ? 'text-purple-700' : (r.type === 'pompa' ? 'text-sky-700' : 'text-slate-800')} focus:border-brand-500 focus:outline-none">
+                                <option value="kollektor" ${r.type === 'kollektor' ? 'selected' : ''}>🟣 Kollektör</option>
+                                <option value="pompa" ${r.type === 'pompa' ? 'selected' : ''}>🔵 Pompa Devresi</option>
+                                <option value="boru" ${r.type === 'boru' ? 'selected' : ''}>⚫ Boru Hattı</option>
+                            </select>
+                        </td>
+
+                        <!-- 5. Description / Name -->
+                        <td class="py-2 px-2">
+                            <input type="text" value="${r.name}" onchange="updateRowField('${r.uid}', 'name', this.value)" class="w-full min-w-[140px] bg-white/80 border border-slate-300 rounded px-2 py-1 text-xs font-medium text-slate-800 focus:border-brand-500 focus:outline-none" placeholder="Hat açıklaması...">
+                        </td>
+
+                        <!-- 6. Capacity (Closed System) - ACTIVE FOR ALL ROWS INCLUDING PUMP & COLLECTOR -->
+                        <td class="py-2 px-2 text-right col-closed ${appState.systemMode !== 'closed' ? 'hidden' : ''}">
+                            <div class="flex items-center justify-end">
+                                <input type="number" step="any" value="${formatPowerDisplay(r.kw)}" onchange="updateRowPower('${r.uid}', this.value)" class="w-20 bg-white border border-slate-300 rounded px-1.5 py-1 text-right font-mono-num font-bold text-xs text-slate-900 focus:border-brand-500 focus:outline-none">
+                                ${autoSumResetBtn}
+                            </div>
+                        </td>
+
+                        <!-- 7. Delta T (Closed System) -->
+                        <td class="py-2 px-2 text-center col-closed ${appState.systemMode !== 'closed' ? 'hidden' : ''}">
+                            <input type="number" step="1" min="1" value="${r.dt}" onchange="updateRowField('${r.uid}', 'dt', this.value)" class="w-14 bg-white border border-slate-300 rounded px-1 py-1 text-center font-mono-num font-bold text-xs text-slate-800 focus:border-brand-500 focus:outline-none">
+                        </td>
+
+                        <!-- 8. Open System Static Height Hz & Terminal Pressure Hm -->
+                        <td class="py-2 px-2 text-center col-open ${appState.systemMode !== 'open' ? 'hidden' : ''}">
+                            <input type="number" step="0.5" value="${r.hz || 0}" onchange="updateRowField('${r.uid}', 'hz', this.value)" class="w-16 bg-white border border-slate-300 rounded px-1 py-1 text-center font-mono-num text-xs">
+                        </td>
+                        <td class="py-2 px-2 text-center col-open ${appState.systemMode !== 'open' ? 'hidden' : ''}">
+                            <input type="number" step="0.5" value="${r.hm || 0}" onchange="updateRowField('${r.uid}', 'hm', this.value)" class="w-16 bg-white border border-slate-300 rounded px-1 py-1 text-center font-mono-num text-xs">
+                        </td>
+
+                        <!-- 9. Flow Rate (Editable in Open mode, Computed in Closed mode) -->
+                        <td class="py-2 px-2 text-right font-mono-num">
+                            ${appState.systemMode === 'open' ? `
+                                <div class="flex items-center justify-end">
+                                    <input type="number" step="0.01" value="${r.directFlowLs}" onchange="updateRowDirectFlow('${r.uid}', this.value)" class="w-20 bg-white border border-slate-300 rounded px-1.5 py-1 text-right font-bold text-xs text-sky-900">
+                                    <span class="text-[10px] ml-1 text-slate-500">L/s</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500">${res.flowM3h.toFixed(2)} m³/h</div>
+                            ` : `
+                                <div class="font-bold text-slate-900 text-xs">${res.flowLs.toFixed(2)} L/s</div>
+                                <div class="text-[10px] text-slate-500">${res.flowM3h.toFixed(2)} m³/h</div>
+                            `}
+                        </td>
+
+                        <!-- 10. Pipe Standard / Material -->
+                        <td class="py-2 px-2">
+                            <select onchange="updateRowPipeType('${r.uid}', this.value)" class="w-36 bg-white border border-slate-300 rounded px-1.5 py-1 text-[11px] font-semibold text-slate-800 focus:border-brand-500 focus:outline-none">
+                                ${pipeStdOptions}
+                            </select>
+                        </td>
+
+                        <!-- 11. Nominal Diameter + Magic Wand Auto-Size Button -->
+                        <td class="py-2 px-2 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <select onchange="updateRowSizeCode('${r.uid}', this.value)" class="w-28 bg-white border border-slate-300 rounded px-1.5 py-1 text-xs font-mono-num font-bold text-slate-900 focus:border-brand-500 focus:outline-none">
+                                    ${sizeOptions}
+                                </select>
+                                <button onclick="autoSizeSingleRow('${r.uid}')" class="w-7 h-7 rounded bg-brand-50 hover:bg-brand-600 text-brand-700 hover:text-white border border-brand-200 flex items-center justify-center transition no-print" title="Hedef hız sınırına göre otomatik çap seç (Kollektör: 0.2 m/s, ≤DN50: 1.0 m/s, >DN50: 1.5 m/s)">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-[11px]"></i>
+                                </button>
+                            </div>
+                        </td>
+
+                        <!-- 12. Inner Diameter d_in + Custom Wall/Roughness Modal Trigger -->
+                        <td class="py-2 px-2 text-center font-mono-num">
+                            <button onclick="openPipeSpecModal('${r.uid}')" class="px-2 py-1 rounded border ${spec.isCustomSpec ? 'bg-amber-50 border-amber-400 text-amber-800 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'} text-[11px] inline-flex items-center gap-1 transition" title="Et kalınlığı (t=${spec.wallT}mm) ve pürüzlülük (ε=${spec.roughness}mm) değerlerini el ile düzenlemek için tıklayın">
+                                <span>${spec.dIn.toFixed(1)}</span>
+                                <i class="fa-solid fa-pen-to-square text-[9px] text-slate-400 no-print"></i>
+                            </button>
+                        </td>
+
+                        <!-- 13. Velocity (Color-coded for Collector, Pump, and Pipe) -->
+                        <td class="py-2 px-2 text-right font-mono-num">
+                            <div class="inline-flex flex-col items-end">
+                                <span class="px-2 py-0.5 rounded border text-xs font-extrabold ${res.velEval.badgeClass}">
+                                    ${res.hyd.v.toFixed(2)} m/s
+                                </span>
+                                <span class="text-[9px] font-semibold text-slate-500 mt-0.5">${res.velEval.text}</span>
+                            </div>
+                        </td>
+
+                        <!-- 14. Pipe Length (m) -->
+                        <td class="py-2 px-2 text-center">
+                            <input type="number" step="0.5" min="0" value="${r.length}" onchange="updateRowField('${r.uid}', 'length', this.value)" class="w-16 bg-white border border-slate-300 rounded px-1.5 py-1 text-center font-mono-num font-bold text-xs text-slate-800 focus:border-brand-500 focus:outline-none">
+                        </td>
+
+                        <!-- 15. Unit Friction Loss R (Pa/m) -->
+                        <td class="py-2 px-2 text-right font-mono-num">
+                            <div class="font-bold text-slate-800 text-xs">${res.hyd.rPaM.toFixed(1)}</div>
+                            <div class="text-[9px] text-slate-400">${res.hyd.rMmssM.toFixed(2)} mmSS/m</div>
+                        </td>
+
+                        <!-- 16. Local Loss (Fittings & Devices in kPa) -->
+                        <td class="py-2 px-2 text-right font-mono-num">
+                            <div class="font-bold text-amber-700 text-xs">${res.localLossKpa.toFixed(2)} kPa</div>
+                            <div class="text-[9px] text-slate-400">Σζ: ${res.totalZeta.toFixed(1)}</div>
+                        </td>
+
+                        <!-- 17. Total Segment Loss (mSS) + Pump Zone Hm -->
+                        <td class="py-2 px-2 text-right font-mono-num bg-slate-50">
+                            <div class="font-extrabold text-xs ${res.isSystemCritical ? 'text-red-600' : 'text-slate-900'}">${res.segmentTotalMss.toFixed(3)} mSS</div>
+                            <div class="text-[9px] text-slate-500">${res.segmentTotalKpa.toFixed(2)} kPa</div>
+                            ${pumpBadgeHtml}
+                        </td>
+
+                        <!-- 18. Row Actions (Add Child & Delete) -->
+                        <td class="py-2 px-2 text-center no-print">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="addChildNode('${r.id}')" class="w-6 h-6 rounded bg-teal-50 hover:bg-teal-600 text-teal-700 hover:text-white flex items-center justify-center transition" title="Bu hattın altına alt branşman ekle">
+                                    <i class="fa-solid fa-code-branch text-[10px]"></i>
+                                </button>
+                                <button onclick="deleteNode('${r.uid}')" class="w-6 h-6 rounded bg-red-50 hover:bg-red-600 text-red-600 hover:text-white flex items-center justify-center transition" title="Hattı sil">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+
+                // Render expandable Fittings & Terminal Devices Accordion
+                if (r.expanded) {
+                    html += renderRowAccordionHtml(r, res);
+                }
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function renderRowAccordionHtml(r, res) {
+            const lib = getFullFittingsLibrary();
+            const libOptions = lib.map((item, idx) => {
+                const unitInfo = item.calcType === 'zeta' ? `ζ = ${item.val}` : (item.calcType === 'kpa' ? `ΔP = ${item.val} kPa` : `Kv = ${item.val}`);
+                return `<option value="${idx}">${item.name} [${unitInfo}]</option>`;
+            }).join('');
+
+            const fittingRowsHtml = r.fittings.map(f => {
+                // Compute effective loss of this specific fitting line
+                let lineLossKpa = 0;
+                let eqZetaText = '-';
+                const qty = Number(f.qty) || 0;
+                const val = Number(f.val) || 0;
+
+                if (f.calcType === 'zeta') {
+                    eqZetaText = `ζ = ${val.toFixed(2)}`;
+                    lineLossKpa = (val * res.hyd.dynPa * qty) / 1000.0;
+                } else if (f.calcType === 'kv') {
+                    const z = val > 0 ? (0.0016 * Math.pow(res.spec.dIn, 4)) / (val * val) : 0;
+                    eqZetaText = `Kv=${val} (ζ≈${z.toFixed(2)})`;
+                    lineLossKpa = (z * res.hyd.dynPa * qty) / 1000.0;
+                } else if (f.calcType === 'kpa') {
+                    eqZetaText = `Sabit ${val.toFixed(1)} kPa`;
+                    lineLossKpa = val * qty;
+                } else if (f.calcType === 'mss') {
+                    eqZetaText = `Sabit ${val.toFixed(2)} mSS`;
+                    lineLossKpa = (val * GRAVITY) * qty;
+                }
+
+                return `
+                    <tr class="bg-white border-b border-slate-200 text-xs">
+                        <td class="py-1.5 px-2.5">
+                            <input type="text" value="${f.name}" onchange="updateFittingItem('${r.uid}', '${f.uid}', 'name', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 font-semibold text-slate-800 focus:border-brand-500 focus:outline-none">
+                        </td>
+                        <td class="py-1.5 px-2 text-center font-mono-num text-[11px] font-bold text-slate-600">
+                            ${res.spec.sizeLabel}
+                        </td>
+                        <td class="py-1.5 px-2 text-center">
+                            <select onchange="updateFittingItem('${r.uid}', '${f.uid}', 'calcType', this.value)" class="bg-white border border-slate-300 rounded px-2 py-1 text-[11px] font-bold text-slate-700">
+                                <option value="zeta" ${f.calcType === 'zeta' ? 'selected' : ''}>Zeta (ζ) Katsayısı</option>
+                                <option value="kv" ${f.calcType === 'kv' ? 'selected' : ''}>Kv Debi Katsayısı</option>
+                                <option value="kpa" ${f.calcType === 'kpa' ? 'selected' : ''}>Sabit Cihaz ΔP (kPa)</option>
+                                <option value="mss" ${f.calcType === 'mss' ? 'selected' : ''}>Sabit Cihaz ΔP (mSS)</option>
+                            </select>
+                        </td>
+                        <td class="py-1.5 px-2 text-center">
+                            <input type="number" step="any" value="${f.val}" onchange="updateFittingItem('${r.uid}', '${f.uid}', 'val', this.value)" class="w-20 bg-amber-50/60 border border-amber-300 rounded px-2 py-1 text-center font-mono-num font-bold text-slate-900">
+                        </td>
+                        <td class="py-1.5 px-2 text-center">
+                            <input type="number" step="1" min="1" value="${f.qty}" onchange="updateFittingItem('${r.uid}', '${f.uid}', 'qty', this.value)" class="w-16 bg-white border border-slate-300 rounded px-2 py-1 text-center font-mono-num font-bold text-slate-900">
+                        </td>
+                        <td class="py-1.5 px-2 text-right font-mono-num text-[11px] text-slate-500">${eqZetaText}</td>
+                        <td class="py-1.5 px-2.5 text-right font-mono-num font-bold text-amber-700">${lineLossKpa.toFixed(2)} kPa (${(lineLossKpa / GRAVITY).toFixed(3)} mSS)</td>
+                        <td class="py-1.5 px-2 text-center no-print">
+                            <button onclick="deleteFittingItem('${r.uid}', '${f.uid}')" class="text-red-500 hover:text-red-700 px-1.5 py-0.5"><i class="fa-solid fa-xmark"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <tr class="bg-slate-100 border-b-2 border-slate-300 no-print">
+                    <td colspan="18" class="p-3.5">
+                        <div class="bg-white rounded-xl border border-slate-300 shadow-sm p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+                            <!-- Left: Added Fittings Table -->
+                            <div class="lg:col-span-8 space-y-2">
+                                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded bg-slate-800 text-white font-mono-num text-xs font-bold">${r.id}</span>
+                                        <h4 class="text-xs font-bold text-slate-800">Lokal Kayıplar, Armatürler ve Uç Birim (Cihaz) Dirençleri</h4>
+                                        <span class="text-[11px] text-brand-700 font-semibold">(Kalıtsal Çap: ${res.spec.sizeLabel}, d_iç: ${res.spec.dIn.toFixed(1)} mm)</span>
+                                    </div>
+                                    <span class="text-xs font-mono-num font-bold text-amber-700">Toplam Lokal Kayıp: ${res.localLossKpa.toFixed(2)} kPa</span>
+                                </div>
+
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-50 text-[10px] uppercase text-slate-500 border-b border-slate-200">
+                                                <th class="py-1.5 px-2.5">Fittings / Vana / Cihaz Adı (El İle Düzenlenebilir)</th>
+                                                <th class="py-1.5 px-2 text-center">Çap</th>
+                                                <th class="py-1.5 px-2 text-center">Hesap Tipi</th>
+                                                <th class="py-1.5 px-2 text-center">Değer (ζ / Kv / ΔP)</th>
+                                                <th class="py-1.5 px-2 text-center">Adet</th>
+                                                <th class="py-1.5 px-2 text-right">Eşdeğer</th>
+                                                <th class="py-1.5 px-2.5 text-right">Toplam Kayıp</th>
+                                                <th class="py-1.5 px-2 text-center">Sil</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${fittingRowsHtml || `<tr><td colspan="8" class="py-4 text-center text-xs text-slate-400 italic">Bu boru hattına henüz dirsek, vana veya cihaz (radyatör/fancoil/boyler) direnci eklenmedi. Sağdaki panelden ekleyebilirsiniz.</td></tr>`}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Right: Add Fitting / Custom Device Panel -->
+                            <div class="lg:col-span-4 bg-slate-50 rounded-xl border border-slate-200 p-3.5 space-y-3">
+                                <div class="text-xs font-bold text-slate-800 border-b border-slate-200 pb-1.5 flex items-center justify-between">
+                                    <span><i class="fa-solid fa-plus-circle text-brand-600 mr-1"></i>Yeni Fittings veya Cihaz Ekle</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">Alfabetik Kütüphane</span>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">1. Standart Kütüphaneden Seçin</label>
+                                    <select id="libSelect_${r.uid}" onchange="onSelectLibraryFitting('${r.uid}', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800">
+                                        <option value="">-- Listeden Eleman Seçin --</option>
+                                        ${libOptions}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">2. Veya Adını El İle Yazın / Düzenleyin</label>
+                                    <input type="text" id="fitName_${r.uid}" placeholder="Örn: 90° Dirsek, Özel Denge Vanası, Fancoil..." class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-900">
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Kayıp Türü</label>
+                                        <select id="fitType_${r.uid}" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold">
+                                            <option value="zeta">Zeta (ζ)</option>
+                                            <option value="kv">Kv Değeri</option>
+                                            <option value="kpa">Sabit kPa</option>
+                                            <option value="mss">Sabit mSS</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Değer</label>
+                                        <input type="number" step="any" id="fitVal_${r.uid}" value="0.5" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-mono-num font-bold text-center">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Adet</label>
+                                        <input type="number" step="1" min="1" id="fitQty_${r.uid}" value="1" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-mono-num font-bold text-center">
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2 pt-1">
+                                    <button onclick="addFittingToRow('${r.uid}', false)" class="flex-1 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-sm transition">
+                                        <i class="fa-solid fa-plus mr-1"></i>Hatta Ekle
+                                    </button>
+                                    <button onclick="addFittingToRow('${r.uid}', true)" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-semibold transition" title="Bu elemanı tarayıcı hafızasındaki özel kütüphanenize de kaydeder">
+                                        <i class="fa-solid fa-bookmark mr-1 text-amber-400"></i>Özel Kütüphaneme Kaydet
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // =========================================================
+        // 7. CSS HIERARCHICAL SYSTEM DIAGRAM (PROJE AĞACI)
+        // =========================================================
+        function renderCssSystemTree() {
+            const container = document.getElementById('cssTreeBody');
+            if (appState.rows.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-xs text-slate-400 italic">
+                        Proje ağacı şeması, yukarıdaki tabloya Kollektör, Pompa Devresi veya Boru Hattı eklediğinizde burada otomatik olarak oluşturulacaktır.
+                    </div>
+                `;
+                return;
+            }
+
+            const idMap = {};
+            const childrenMap = {};
+            appState.rows.forEach(r => {
+                idMap[r.id] = r;
+                const pId = r.parentId || '';
+                if (!childrenMap[pId]) childrenMap[pId] = [];
+                childrenMap[pId].push(r);
+            });
+
+            const visited = new Set();
+
+            function buildNodeHtml(row) {
+                if (visited.has(row.uid)) return '';
+                visited.add(row.uid);
+
+                const res = appState.calcResults[row.uid];
+                const kids = childrenMap[row.id] || [];
+                const isCrit = res.isSystemCritical || res.isZoneCritical;
+
+                // Icon & theme based on node type
+                let iconHtml = `<i class="fa-solid fa-grip-lines text-slate-600"></i>`;
+                let cardBorder = isCrit ? 'border-red-500 bg-red-50/70' : 'border-slate-300 bg-white';
+                let typeTag = 'Boru Hattı';
+
+                if (row.type === 'kollektor') {
+                    iconHtml = `<i class="fa-solid fa-bars-staggered text-purple-600"></i>`;
+                    cardBorder = isCrit ? 'border-red-500 bg-purple-50/90' : 'border-purple-400 bg-purple-50/60';
+                    typeTag = 'ANA KOLLEKTÖR';
+                } else if (row.type === 'pompa') {
+                    iconHtml = `<i class="fa-solid fa-fan text-sky-600"></i>`;
+                    cardBorder = isCrit ? 'border-red-500 bg-sky-50/90' : 'border-sky-400 bg-sky-50/70';
+                    typeTag = 'POMPA DEVRESİ';
+                }
+
+                const pz = appState.pumpZones[row.id];
+                const pumpSummaryBadge = (row.type === 'pompa' && pz)
+                    ? `<span class="px-2 py-0.5 rounded bg-sky-700 text-white font-mono-num text-[10px] font-bold">Q=${res.flowM3h.toFixed(2)} m³/h | Hm=${pz.maxMss.toFixed(2)} mSS</span>`
+                    : '';
+
+                // Sub-items for attached fittings & terminal units (Radiator, Fan Coil, Boiler, etc.)
+                let fittingsSummaryHtml = '';
+                if (row.fittings.length > 0) {
+                    const fitTags = row.fittings.map(f => 
+                        `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 text-[10px] text-slate-700 font-medium">
+                            <i class="fa-solid fa-puzzle-piece text-[9px] text-amber-600"></i>
+                            <span>${f.qty}× ${f.name}</span>
+                        </span>`
+                    ).join(' ');
+                    fittingsSummaryHtml = `
+                        <div class="mt-1.5 pt-1.5 border-t border-slate-200/80 flex flex-wrap items-center gap-1">
+                            <span class="text-[10px] font-bold text-slate-400 mr-1">↳ Armatür/Cihaz:</span>
+                            ${fitTags}
+                        </div>
+                    `;
+                }
+
+                // Children递归
+                let childrenUlHtml = '';
+                if (kids.length > 0) {
+                    const anyChildCrit = kids.some(k => appState.calcResults[k.uid]?.isSystemCritical || appState.calcResults[k.uid]?.isZoneCritical);
+                    childrenUlHtml = `<ul class="${anyChildCrit ? 'crit-group' : ''}">
+                        ${kids.map(k => buildNodeHtml(k)).join('')}
+                    </ul>`;
+                }
+
+                return `
+                    <li class="${isCrit ? 'crit-branch' : ''}">
+                        <div onclick="focusTableRow('${row.uid}')" class="sys-node-card inline-block min-w-[300px] max-w-2xl rounded-xl border-2 ${cardBorder} px-3.5 py-2 shadow-sm hover:shadow-md cursor-pointer transition-all">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-xs shadow-sm">
+                                        ${iconHtml}
+                                    </span>
+                                    <span class="font-mono-num font-extrabold text-xs text-slate-900">${row.id}</span>
+                                    <span class="text-xs font-bold text-slate-700">${row.name}</span>
+                                    <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-600">${typeTag}</span>
+                                    ${res.isSystemCritical ? `<span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-red-600 text-white">KRİTİK HAT</span>` : ''}
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-1.5 font-mono-num text-[11px]">
+                                    ${pumpSummaryBadge}
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-white font-bold">${res.spec.sizeLabel}</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 text-slate-800 font-semibold">${res.flowLs.toFixed(2)} L/s</span>
+                                    <span class="px-1.5 py-0.5 rounded border font-bold ${res.velEval.badgeClass}">${res.hyd.v.toFixed(2)} m/s</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-900 font-bold" title="Bu hattın toplam basınç kaybı">ΔP: ${res.segmentTotalMss.toFixed(3)} mSS</span>
+                                </div>
+                            </div>
+                            ${fittingsSummaryHtml}
+                        </div>
+                        ${childrenUlHtml}
+                    </li>
+                `;
+            }
+
+            const roots = appState.rows.filter(r => !r.parentId || !idMap[r.parentId]);
+            const treeContent = roots.map(r => buildNodeHtml(r)).join('');
+
+            container.innerHTML = `<ul class="sys-tree">${treeContent}</ul>`;
+        }
+
+        function focusTableRow(rowUid) {
+            const tr = document.getElementById(`row_${rowUid}`);
+            if (tr) {
+                tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                tr.classList.remove('row-flash');
+                void tr.offsetWidth;
+                tr.classList.add('row-flash');
+            }
+        }
+
+        // =========================================================
+        // 8. BOM (KEŞİF VE METRAJ) RENDERING
+        // =========================================================
+        function renderBomTables() {
+            // 1. Pumps Table
+            const pumpsBody = document.getElementById('bomPumpsBody');
+            const pumpRows = appState.rows.filter(r => r.type === 'pompa');
+
+            if (pumpRows.length === 0) {
+                pumpsBody.innerHTML = `<tr><td colspan="7" class="py-4 text-center text-slate-400 italic font-sans">Projede tanımlı pompa devresi bulunmuyor.</td></tr>`;
+            } else {
+                pumpsBody.innerHTML = pumpRows.map(p => {
+                    const res = appState.calcResults[p.uid];
+                    const pz = appState.pumpZones[p.id];
+                    const hmMss = pz ? pz.maxMss : res.segmentTotalMss;
+                    const hmKpa = pz ? pz.maxKpa : res.segmentTotalKpa;
+                    const routeStr = pz ? pz.pathIds.join(' ➔ ') : p.id;
+                    return `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2.5 px-3 font-bold text-slate-900 font-sans">${p.id} - ${p.name}</td>
+                            <td class="py-2.5 px-3 text-slate-600">${p.parentId || 'Ana Kollektör / Kök'}</td>
+                            <td class="py-2.5 px-3 text-center font-bold">${res.spec.sizeLabel}</td>
+                            <td class="py-2.5 px-3 text-right">${ Number(p.kw).toFixed(1) } kW (${Math.round(p.kw * KCAL_FACTOR).toLocaleString('tr-TR')} kcal/h)</td>
+                            <td class="py-2.5 px-3 text-right font-bold text-sky-700">${res.flowM3h.toFixed(2)} m³/h (${res.flowLs.toFixed(2)} L/s)</td>
+                            <td class="py-2.5 px-3 text-right font-extrabold text-red-600">${hmMss.toFixed(2)} mSS (${hmKpa.toFixed(1)} kPa)</td>
+                            <td class="py-2.5 px-3 text-[11px] text-slate-600 font-sans">${routeStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // 2. Pipes Metraj Table
+            const pipeGroups = {};
+            appState.rows.forEach(r => {
+                const res = appState.calcResults[r.uid];
+                const len = Number(r.length) || 0;
+                if (len <= 0) return;
+                const key = `${r.pipeType}__${res.spec.sizeCode}`;
+                if (!pipeGroups[key]) {
+                    pipeGroups[key] = {
+                        stdName: res.spec.stdName,
+                        sizeLabel: res.spec.sizeLabel,
+                        dn: res.spec.dn,
+                        dIn: res.spec.dIn,
+                        totalLength: 0
+                    };
+                }
+                pipeGroups[key].totalLength += len;
+            });
+
+            const pipeList = Object.values(pipeGroups).sort((a, b) => a.stdName.localeCompare(b.stdName) || a.dn - b.dn);
+            const pipesBody = document.getElementById('bomPipesBody');
+            if (pipeList.length === 0) {
+                pipesBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-400 italic font-sans">Boru metraj verisi bulunmuyor.</td></tr>`;
+            } else {
+                pipesBody.innerHTML = pipeList.map(item => `
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-2 px-3 font-sans font-medium text-slate-800">${item.stdName}</td>
+                        <td class="py-2 px-3 text-center font-bold text-slate-900">${item.sizeLabel}</td>
+                        <td class="py-2 px-3 text-center text-slate-600">${item.dIn.toFixed(1)} mm</td>
+                        <td class="py-2 px-3 text-right font-extrabold text-brand-700">${item.totalLength.toFixed(1)} m</td>
+                    </tr>
+                `).join('');
+            }
+
+            // 3. Fittings & Terminal Devices Metraj Table
+            const fitGroups = {};
+            appState.rows.forEach(r => {
+                const res = appState.calcResults[r.uid];
+                r.fittings.forEach(f => {
+                    const qty = Number(f.qty) || 0;
+                    if (qty <= 0) return;
+                    const key = `${f.name}__${res.spec.sizeLabel}__${f.calcType}__${f.val}`;
+                    if (!fitGroups[key]) {
+                        fitGroups[key] = {
+                            name: f.name,
+                            sizeLabel: res.spec.sizeLabel,
+                            calcType: f.calcType,
+                            val: f.val,
+                            totalQty: 0
+                        };
+                    }
+                    fitGroups[key].totalQty += qty;
+                });
+            });
+
+            const fitList = Object.values(fitGroups).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+            const fitsBody = document.getElementById('bomFittingsBody');
+            if (fitList.length === 0) {
+                fitsBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-400 italic font-sans">Fittings veya cihaz metrajı bulunmuyor.</td></tr>`;
+            } else {
+                fitsBody.innerHTML = fitList.map(f => {
+                    const specStr = f.calcType === 'zeta' ? `ζ = ${f.val}` : (f.calcType === 'kpa' ? `ΔP = ${f.val} kPa` : (f.calcType === 'mss' ? `ΔP = ${f.val} mSS` : `Kv = ${f.val}`));
+                    return `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2 px-3 font-sans font-semibold text-slate-800">${f.name}</td>
+                            <td class="py-2 px-3 text-center font-bold text-slate-700">${f.sizeLabel}</td>
+                            <td class="py-2 px-3 text-center text-slate-500">${specStr}</td>
+                            <td class="py-2 px-3 text-right font-extrabold text-amber-700">${f.totalQty} Adet</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // =========================================================
+        // 9. NODE & FITTINGS CRUD ACTIONS
+        // =========================================================
+        function addNode(nodeType) {
+            const count = appState.rows.filter(r => r.type === nodeType).length + 1;
+            let prefix = 'H';
+            let defaultName = `Boru Hattı ${count}`;
+            let defaultParent = '';
+            let defaultKw = 30;
+            let defaultLen = 12;
+
+            if (nodeType === 'kollektor') {
+                prefix = 'KOL';
+                defaultName = `Ana Kollektör ${count}`;
+                defaultKw = 120;
+                defaultLen = 2.5;
+            } else if (nodeType === 'pompa') {
+                prefix = 'P';
+                defaultName = `${count}. Pompa Devresi`;
+                defaultKw = 60;
+                defaultLen = 4.0;
+                // Auto attach to first collector if exists
+                const kol = appState.rows.find(r => r.type === 'kollektor');
+                if (kol) defaultParent = kol.id;
+            } else {
+                // Auto attach to last added pump or branch if exists
+                if (appState.rows.length > 0) {
+                    defaultParent = appState.rows[appState.rows.length - 1].id;
+                }
+            }
+
+            // Generate unique ID
+            let candidateId = `${prefix}-${count}`;
+            let suffix = count;
+            while (appState.rows.some(r => r.id === candidateId)) {
+                suffix++;
+                candidateId = `${prefix}-${suffix}`;
+            }
+
+            // Pick initial optimal diameter
+            const flowGuessLs = (defaultKw / (appState.cp * 20)) * (1000.0 / appState.rho);
+            const initSizeCode = findOptimalSizeCode('steel_din2440', flowGuessLs, nodeType);
+
+            appState.rows.push({
+                uid: uid(),
+                id: candidateId,
+                parentId: defaultParent,
+                type: nodeType,
+                name: defaultName,
+                kw: defaultKw,
+                dt: 20,
+                directFlowLs: Number(flowGuessLs.toFixed(2)),
+                hz: 0,
+                hm: 0,
+                pipeType: 'steel_din2440',
+                sizeCode: initSizeCode,
+                customDout: null,
+                customWallT: null,
+                customRoughness: null,
+                manualCapacityOverride: false,
+                length: defaultLen,
+                fittings: [],
+                expanded: false
+            });
+
+            renderAll();
+        }
+
+        function addChildNode(parentId) {
+            const parentRow = appState.rows.find(r => r.id === parentId);
+            const childCount = appState.rows.filter(r => r.parentId === parentId).length + 1;
+            const newId = `${parentId}.${childCount}`;
+
+            const defaultKw = 20;
+            const flowGuessLs = (defaultKw / (appState.cp * 20)) * (1000.0 / appState.rho);
+            const pType = parentRow ? parentRow.pipeType : 'steel_din2440';
+            const optSize = findOptimalSizeCode(pType, flowGuessLs, 'boru');
+
+            appState.rows.push({
+                uid: uid(),
+                id: newId,
+                parentId: parentId,
+                type: 'boru',
+                name: `${parentId} Alt Branşmanı ${childCount}`,
+                kw: defaultKw,
+                dt: parentRow ? parentRow.dt : 20,
+                directFlowLs: Number(flowGuessLs.toFixed(2)),
+                hz: 0,
+                hm: 0,
+                pipeType: pType,
+                sizeCode: optSize,
+                customDout: null,
+                customWallT: null,
+                customRoughness: null,
+                manualCapacityOverride: false,
+                length: 10,
+                fittings: [],
+                expanded: false
+            });
+
+            renderAll();
+        }
+
+        function deleteNode(rowUid) {
+            const target = appState.rows.find(r => r.uid === rowUid);
+            if (!target) return;
+            // Re-parent direct children to deleted node's parent
+            appState.rows.forEach(r => {
+                if (r.parentId === target.id) r.parentId = target.parentId;
+            });
+            appState.rows = appState.rows.filter(r => r.uid !== rowUid);
+            renderAll();
+        }
+
+        function clearAllNodes() {
+            appState.rows = [];
+            renderAll();
+        }
+
+        function updateRowField(rowUid, field, value) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+
+            if (field === 'id') {
+                const oldId = row.id;
+                const newId = value.trim() || oldId;
+                row.id = newId;
+                // Update children references
+                appState.rows.forEach(other => {
+                    if (other.parentId === oldId) other.parentId = newId;
+                });
+            } else if (field === 'parentId' || field === 'name' || field === 'type') {
+                row[field] = value;
+            } else {
+                row[field] = Number(value) || 0;
+            }
+            renderAll();
+        }
+
+        function updateRowPower(rowUid, inputVal) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+            row.kw = parsePowerInputToKw(inputVal);
+            // If this row has children, mark manual override so user's manual entry is respected!
+            const hasKids = appState.rows.some(other => other.parentId === row.id);
+            if (hasKids) {
+                row.manualCapacityOverride = true;
+            }
+            renderAll();
+        }
+
+        function updateRowDirectFlow(rowUid, inputVal) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+            row.directFlowLs = Math.max(0, Number(inputVal) || 0);
+            const hasKids = appState.rows.some(other => other.parentId === row.id);
+            if (hasKids) {
+                row.manualCapacityOverride = true;
+            }
+            renderAll();
+        }
+
+        function resetParentToAutoSum(rowUid) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+            row.manualCapacityOverride = false;
+            renderAll();
+        }
+
+        function updateRowPipeType(rowUid, newPipeType) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+            row.pipeType = newPipeType;
+            row.customDout = null;
+            row.customWallT = null;
+            row.customRoughness = null;
+            const flowLs = appState.calcResults[rowUid]?.flowLs || 0.5;
+            row.sizeCode = findOptimalSizeCode(newPipeType, flowLs, row.type);
+            renderAll();
+        }
+
+        function updateRowSizeCode(rowUid, newSizeCode) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+            row.sizeCode = newSizeCode;
+            row.customDout = null;
+            row.customWallT = null;
+            renderAll();
+        }
+
+        function autoSizeSingleRow(rowUid) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+            const flowLs = appState.calcResults[rowUid]?.flowLs || 0;
+            row.sizeCode = findOptimalSizeCode(row.pipeType, flowLs, row.type);
+            row.customDout = null;
+            row.customWallT = null;
+            renderAll();
+        }
+
+        function autoSizeAllNodes() {
+            recalculateProjectTree();
+            appState.rows.forEach(r => {
+                const flowLs = appState.calcResults[r.uid]?.flowLs || 0;
+                r.sizeCode = findOptimalSizeCode(r.pipeType, flowLs, r.type);
+                r.customDout = null;
+                r.customWallT = null;
+            });
+            renderAll();
+        }
+
+        function toggleRowAccordion(rowUid) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+            row.expanded = !row.expanded;
+            renderAll();
+        }
+
+        function onSelectLibraryFitting(rowUid, idxStr) {
+            if (idxStr === '') return;
+            const lib = getFullFittingsLibrary();
+            const item = lib[Number(idxStr)];
+            if (!item) return;
+            document.getElementById(`fitName_${rowUid}`).value = item.name;
+            document.getElementById(`fitType_${rowUid}`).value = item.calcType;
+            document.getElementById(`fitVal_${rowUid}`).value = item.val;
+        }
+
+        function addFittingToRow(rowUid, saveToCustomLib) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+
+            const nameInput = document.getElementById(`fitName_${rowUid}`);
+            const typeSelect = document.getElementById(`fitType_${rowUid}`);
+            const valInput = document.getElementById(`fitVal_${rowUid}`);
+            const qtyInput = document.getElementById(`fitQty_${rowUid}`);
+
+            const name = (nameInput.value || '').trim() || 'Özel Armatür / Direnç';
+            const calcType = typeSelect.value;
+            const val = Math.max(0, Number(valInput.value) || 0);
+            const qty = Math.max(1, Number(qtyInput.value) || 1);
+
+            row.fittings.push({
+                uid: uid(),
+                name,
+                calcType,
+                val,
+                qty
+            });
+
+            if (saveToCustomLib) {
+                saveCustomItemToLibrary(name, calcType, val);
+            }
+
+            renderAll();
+        }
+
+        function updateFittingItem(rowUid, fitUid, field, val) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+            const fit = row.fittings.find(f => f.uid === fitUid);
+            if (!fit) return;
+
+            if (field === 'name' || field === 'calcType') {
+                fit[field] = val;
+            } else {
+                fit[field] = Math.max(0, Number(val) || 0);
+            }
+            renderAll();
+        }
+
+        function deleteFittingItem(rowUid, fitUid) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+            row.fittings = row.fittings.filter(f => f.uid !== fitUid);
+            renderAll();
+        }
+
+        // =========================================================
+        // 10. PIPE WALL THICKNESS & ROUGHNESS MODAL
+        // =========================================================
+        function openPipeSpecModal(rowUid) {
+            const row = appState.rows.find(r => r.uid === rowUid);
+            if (!row) return;
+            appState.editingPipeUid = rowUid;
+            const spec = getPipeSpec(row);
+
+            document.getElementById('modalPipeTitle').textContent = `Hat: ${row.id} - ${row.name} (${spec.sizeLabel})`;
+            document.getElementById('modalPipeStd').textContent = `Standart: ${spec.stdName}`;
+            document.getElementById('modalDout').value = spec.dOut;
+            document.getElementById('modalWallT').value = spec.wallT;
+            document.getElementById('modalRoughness').value = spec.roughness;
+            updateModalPreview();
+
+            const modal = document.getElementById('pipeSpecModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function updateModalPreview() {
+            const dOut = Number(document.getElementById('modalDout').value) || 0;
+            const wallT = Number(document.getElementById('modalWallT').value) || 0;
+            const dIn = Math.max(1.0, dOut - 2.0 * wallT);
+            document.getElementById('modalDinPreview').value = `${dIn.toFixed(2)} mm`;
+        }
+
+        function resetPipeSpecToDefault() {
+            const row = appState.rows.find(r => r.uid === appState.editingPipeUid);
+            if (!row) return;
+            row.customDout = null;
+            row.customWallT = null;
+            row.customRoughness = null;
+            closePipeSpecModal();
+            renderAll();
+        }
+
+        function savePipeSpecModal() {
+            const row = appState.rows.find(r => r.uid === appState.editingPipeUid);
+            if (!row) return;
+            row.customDout = Number(document.getElementById('modalDout').value) || null;
+            row.customWallT = Number(document.getElementById('modalWallT').value) || null;
+            row.customRoughness = Number(document.getElementById('modalRoughness').value) || null;
+            closePipeSpecModal();
+            renderAll();
+        }
+
+        function closePipeSpecModal() {
+            const modal = document.getElementById('pipeSpecModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            appState.editingPipeUid = null;
+        }
+
+        // =========================================================
+        // 11. SAMPLE PROJECT LOADER (COLLECTOR + 2 PUMPS + TERMINALS)
+        // =========================================================
+        function loadSampleProject() {
+            appState.systemMode = 'closed';
+            setSystemMode('closed', true);
+
+            appState.rows = [
+                {
+                    uid: uid(),
+                    id: "KOL-1",
+                    parentId: "",
+                    type: "kollektor",
+                    name: "Isı Merkezi Ana Dağıtım Kollektörü",
+                    kw: 185,
+                    dt: 20,
+                    directFlowLs: 2.27,
+                    hz: 0, hm: 0,
+                    pipeType: "steel_din2440",
+                    sizeCode: "DN125",
+                    customDout: null, customWallT: null, customRoughness: null,
+                    manualCapacityOverride: false,
+                    length: 3.0,
+                    fittings: [
+                        { uid: uid(), name: "Kollektör Giriş / Çıkış Ağzı", calcType: "zeta", val: 1.0, qty: 2 },
+                        { uid: uid(), name: "Hava Ayırıcı / Tortu Tutucu", calcType: "zeta", val: 1.5, qty: 1 }
+                    ],
+                    expanded: false
+                },
+                // 1. Pompa Devresi: Radyatör & Fancoil Zonu
+                {
+                    uid: uid(),
+                    id: "P-1",
+                    parentId: "KOL-1",
+                    type: "pompa",
+                    name: "1. Pompa Devresi (Blok Isıtma & Fancoil Zonu)",
+                    kw: 125,
+                    dt: 20,
+                    directFlowLs: 1.53,
+                    hz: 0, hm: 0,
+                    pipeType: "steel_din2440",
+                    sizeCode: "DN50",
+                    customDout: null, customWallT: null, customRoughness: null,
+                    manualCapacityOverride: false,
+                    length: 6.0,
+                    fittings: [
+                        { uid: uid(), name: "Küresel Vana (Tam Geçişli)", calcType: "zeta", val: 0.2, qty: 2 },
+                        { uid: uid(), name: "Pislik Tutucu (Y Tipi)", calcType: "zeta", val: 2.5, qty: 1 },
+                        { uid: uid(), name: "Çekvalf (Yaylı Tip)", calcType: "zeta", val: 4.0, qty: 1 }
+                    ],
+                    expanded: false
+                },
+                {
+                    uid: uid(),
+                    id: "H-1.1",
+                    parentId: "P-1",
+                    type: "boru",
+                    name: "Şaft Ana Kolon Hattı",
+                    kw: 125,
+                    dt: 20,
+                    directFlowLs: 1.53,
+                    hz: 0, hm: 0,
+                    pipeType: "steel_din2440",
+                    sizeCode: "DN50",
+                    customDout: null, customWallT: null, customRoughness: null,
+                    manualCapacityOverride: false,
+                    length: 24.0,
+                    fittings: [
+                        { uid: uid(), name: "90° Dirsek (Geniş Radyus)", calcType: "zeta", val: 0.45, qty: 4 },
+                        { uid: uid(), name: "Balans Vanası (Statik)", calcType: "zeta", val: 3.5, qty: 1 }
+                    ],
+                    expanded: false
+                },
+                {
+                    uid: uid(),
+                    id: "H-1.1A",
+                    parentId: "H-1.1",
+                    type: "boru",
+                    name: "1. Kat Radyatör Branşmanı",
+                    kw: 55,
+                    dt: 20,
+                    directFlowLs: 0.67,
+                    hz: 0, hm: 0,
+                    pipeType: "pprc_pn20",
+                    sizeCode: "Ø50",
+                    customDout: null, customWallT: null, customRoughness: null,
+                    manualCapacityOverride: false,
+                    length: 18.0,
+                    fittings: [
+                        { uid: uid(), name: "90° Dirsek (Dar Radyus)", calcType: "zeta", val: 0.75, qty: 6 },
+                        { uid: uid(), name: "Radyatör (Panel/Döküm) Direnci", calcType: "kpa", val: 5.0, qty: 1 }
+                    ],
+                    expanded: false
+                },
+                {
+                    uid: uid(),
+                    id: "H-1.1B",
+                    parentId: "H-1.1",
+                    type: "boru",
+                    name: "2. Kat Ofis Fan Coil Hattı (En Uzak Uç)",
+                    kw: 70,
+                    dt: 20,
+                    directFlowLs: 0.86,
+                    hz: 0, hm: 0,
+                    pipeType: "steel_din2440",
+                    sizeCode: "DN40",
+                    customDout: null, customWallT: null, customRoughness: null,
+                    manualCapacityOverride: false,
+                    length: 32.0,
+                    fittings: [
+                        { uid: uid(), name: "90° Dirsek (Geniş Radyus)", calcType: "zeta", val: 0.45, qty: 6 },
+                        { uid: uid(), name: "Te - Ayrılma (90° Branşman)", calcType: "zeta", val: 1.3, qty: 2 },
+                        { uid: uid(), name: "Fan Coil Batarya Direnci", calcType: "kpa", val: 20.0, qty: 1 }
+                    ],
+                    expanded: true
+                },
+                // 2. Pompa Devresi: Boyler Zonu
+                {
+                    uid: uid(),
+                    id: "P-2",
+                    parentId: "KOL-1",
+                    type: "pompa",
+                    name: "2. Pompa Devresi (Boyler Hazırlama Zonu)",
+                    kw: 60,
+                    dt: 15,
+                    directFlowLs: 0.98,
+                    hz: 0, hm: 0,
+                    pipeType: "steel_din2440",
+                    sizeCode: "DN40",
+                    customDout: null, customWallT: null, customRoughness: null,
+                    manualCapacityOverride: false,
+                    length: 5.0,
+                    fittings: [
+                        { uid: uid(), name: "Küresel Vana (Tam Geçişli)", calcType: "zeta", val: 0.2, qty: 2 },
+                        { uid: uid(), name: "Çekvalf (Çalpara Tip)", calcType: "zeta", val: 2.0, qty: 1 }
+                    ],
+                    expanded: false
+                },
+                {
+                    uid: uid(),
+                    id: "H-2.1",
+                    parentId: "P-2",
+                    type: "boru",
+                    name: "Boyler Serpantin Besleme Hattı",
+                    kw: 60,
+                    dt: 15,
+                    directFlowLs: 0.98,
+                    hz: 0, hm: 0,
+                    pipeType: "steel_din2440",
+                    sizeCode: "DN40",
+                    customDout: null, customWallT: null, customRoughness: null,
+                    manualCapacityOverride: false,
+                    length: 14.0,
+                    fittings: [
+                        { uid: uid(), name: "90° Dirsek (Geniş Radyus)", calcType: "zeta", val: 0.45, qty: 4 },
+                        { uid: uid(), name: "Boyler Serpantin (İç Ünite) Direnci", calcType: "kpa", val: 18.0, qty: 1 }
+                    ],
+                    expanded: false
+                }
+            ];
+
+            renderAll();
+        }
+
+        // =========================================================
+        // 12. QUICK SINGLE CALCULATOR (TAB 3)
+        // =========================================================
+        function initQuickCalculator() {
+            const sel = document.getElementById('qcPipeType');
+            sel.innerHTML = Object.keys(PIPE_STANDARDS).map(k => 
+                `<option value="${k}">${PIPE_STANDARDS[k].name}</option>`
+            ).join('');
+            sel.addEventListener('change', () => {
+                const std = PIPE_STANDARDS[sel.value];
+                if (std) document.getElementById('qcRoughness').value = std.roughness;
+                runQuickCalculator();
+            });
+            runQuickCalculator();
+        }
+
+        function setQuickMode(mode) {
+            appState.quickMode = mode;
+            const capBox = document.getElementById('quickCapInputs');
+            const flowBox = document.getElementById('quickFlowInputs');
+            const btnCap = document.getElementById('btnQuickCap');
+            const btnFlow = document.getElementById('btnQuickFlow');
+
+            if (mode === 'capacity') {
+                capBox.classList.remove('hidden');
+                capBox.classList.add('grid');
+                flowBox.classList.add('hidden');
+                flowBox.classList.remove('grid');
+                btnCap.className = 'py-1.5 rounded bg-white text-slate-900 shadow-sm';
+                btnFlow.className = 'py-1.5 rounded text-slate-600 hover:text-slate-900';
+            } else {
+                capBox.classList.add('hidden');
+                capBox.classList.remove('grid');
+                flowBox.classList.remove('hidden');
+                flowBox.classList.add('grid');
+                btnFlow.className = 'py-1.5 rounded bg-white text-slate-900 shadow-sm';
+                btnCap.className = 'py-1.5 rounded text-slate-600 hover:text-slate-900';
+            }
+            runQuickCalculator();
+        }
+
+        function runQuickCalculator() {
+            let flowLs = 0;
+            if (appState.quickMode === 'capacity') {
+                const rawP = Math.max(0, Number(document.getElementById('qcPower').value) || 0);
+                const pUnit = document.getElementById('qcPowerUnit').value;
+                const kw = pUnit === 'kcal' ? rawP / KCAL_FACTOR : rawP;
+                const dt = Math.max(0.5, Number(document.getElementById('qcDt').value) || 20);
+                flowLs = (kw / (appState.cp * dt)) * (1000.0 / appState.rho);
+            } else {
+                const rawF = Math.max(0, Number(document.getElementById('qcDirectFlow').value) || 0);
+                const fUnit = document.getElementById('qcFlowUnit').value;
+                flowLs = fUnit === 'm3h' ? rawF / 3.6 : rawF;
+            }
+
+            const flowM3h = flowLs * 3.6;
+            const pipeKey = document.getElementById('qcPipeType').value || 'steel_din2440';
+            const std = PIPE_STANDARDS[pipeKey];
+            const targetMaxV = Math.max(0.05, Number(document.getElementById('qcMaxV').value) || 1.0);
+            const eps = Math.max(0.0001, Number(document.getElementById('qcRoughness').value) || std.roughness);
+
+            let recommendedSize = null;
+            let rowsHtml = '';
+
+            std.sizes.forEach(s => {
+                const dIn = s.dOut - 2.0 * s.t;
+                const hyd = computeSegmentHydraulics(flowLs, dIn, eps);
+                const isRecommended = (!recommendedSize && hyd.v <= targetMaxV && flowLs > 0);
+                if (isRecommended) {
+                    recommendedSize = { s, dIn, hyd };
+                }
+
+                let rowBg = 'hover:bg-slate-50';
+                let badge = `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px]">Düşük Hız</span>`;
+
+                if (isRecommended) {
+                    rowBg = 'bg-emerald-50/90 border-l-4 border-l-emerald-500 font-bold';
+                    badge = `<span class="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold">★ ÖNERİLEN İDEAL ÇAP</span>`;
+                } else if (hyd.v > targetMaxV) {
+                    rowBg = 'bg-red-50/40 text-slate-500';
+                    badge = `<span class="px-2 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-semibold">Hedef Hız Aşıldı (>${targetMaxV} m/s)</span>`;
+                }
+
+                rowsHtml += `
+                    <tr class="${rowBg}">
+                        <td class="py-2 px-3 font-bold text-slate-900">${s.label}</td>
+                        <td class="py-2 px-3 text-center text-slate-600">${s.dOut.toFixed(1)} × ${s.t.toFixed(2)}</td>
+                        <td class="py-2 px-3 text-center font-bold text-brand-700">${dIn.toFixed(1)}</td>
+                        <td class="py-2 px-3 text-right font-bold ${hyd.v > targetMaxV ? 'text-red-600' : 'text-slate-900'}">${hyd.v.toFixed(2)} m/s</td>
+                        <td class="py-2 px-3 text-right">${hyd.rPaM.toFixed(1)} Pa/m</td>
+                        <td class="py-2 px-3 text-right">${hyd.rMmssM.toFixed(2)} mmSS/m</td>
+                        <td class="py-2 px-3 text-center font-sans">${badge}</td>
+                    </tr>
+                `;
+            });
+
+            if (!recommendedSize && std.sizes.length > 0) {
+                const last = std.sizes[std.sizes.length - 1];
+                const dIn = last.dOut - 2.0 * last.t;
+                recommendedSize = { s: last, dIn, hyd: computeSegmentHydraulics(flowLs, dIn, eps) };
+            }
+
+            document.getElementById('qcTableBody').innerHTML = rowsHtml;
+            if (recommendedSize) {
+                document.getElementById('qcRecLabel').textContent = recommendedSize.s.label;
+                document.getElementById('qcRecVel').textContent = `V = ${recommendedSize.hyd.v.toFixed(2)} m/s`;
+                document.getElementById('qcRecLoss').textContent = `R = ${recommendedSize.hyd.rPaM.toFixed(1)} Pa/m`;
+                document.getElementById('qcRecFlowInfo').textContent = `Debi: ${flowLs.toFixed(2)} L/s (${flowM3h.toFixed(2)} m³/h)`;
+                document.getElementById('qcRecDinInfo').textContent = `d_iç: ${recommendedSize.dIn.toFixed(1)} mm`;
+            }
+        }
+
+        // =========================================================
+        // 13. SYSTEM CONTROLS, LAYOUT, PRINT & CSV EXPORT
+        // =========================================================
+        function setSystemMode(mode, skipRender = false) {
+            appState.systemMode = mode;
+            const btnClosed = document.getElementById('btnModeClosed');
+            const btnOpen = document.getElementById('btnModeOpen');
+            const powerBox = document.getElementById('unitPowerBox');
+
+            if (mode === 'closed') {
+                btnClosed.className = 'px-3 py-1.5 rounded-lg transition-all bg-brand-600 text-white shadow flex items-center gap-1.5';
+                btnOpen.className = 'px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5';
+                powerBox.classList.remove('hidden');
+            } else {
+                btnOpen.className = 'px-3 py-1.5 rounded-lg transition-all bg-brand-600 text-white shadow flex items-center gap-1.5';
+                btnClosed.className = 'px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5';
+                powerBox.classList.add('hidden');
+            }
+            if (!skipRender) renderAll();
+        }
+
+        function changePowerUnit(unit) {
+            appState.powerUnit = unit;
+            renderAll();
+        }
+
+        function changeWaterTemp(tempStr) {
+            const t = Number(tempStr);
+            appState.waterTemp = t;
+            if (t === 80) {
+                appState.rho = 972;
+                appState.nu = 0.365e-6;
+                appState.cp = 4.195;
+            } else if (t === 45) {
+                appState.rho = 990;
+                appState.nu = 0.605e-6;
+                appState.cp = 4.180;
+            } else {
+                appState.rho = 999;
+                appState.nu = 1.307e-6;
+                appState.cp = 4.192;
+            }
+            renderAll();
+            runQuickCalculator();
+        }
+
+        function setTreeLayout(layout) {
+            appState.treeLayout = layout;
+            const grid = document.getElementById('workspaceGrid');
+            const tableCont = document.getElementById('tableContainer');
+            const treeCont = document.getElementById('treeVisualizerContainer');
+
+            const bBottom = document.getElementById('btnLayoutBottom');
+            const bSide = document.getElementById('btnLayoutSide');
+            const bHide = document.getElementById('btnLayoutHide');
+
+            [bBottom, bSide, bHide].forEach(b => b.className = 'px-2 py-1 rounded text-slate-600 hover:text-slate-900');
+
+            if (layout === 'bottom') {
+                bBottom.className = 'px-2 py-1 rounded bg-white text-slate-800 shadow-sm';
+                grid.className = 'grid grid-cols-1 gap-4 items-start';
+                tableCont.className = 'bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden';
+                treeCont.className = 'bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print-avoid-break';
+            } else if (layout === 'side') {
+                bSide.className = 'px-2 py-1 rounded bg-white text-slate-800 shadow-sm';
+                grid.className = 'grid grid-cols-1 xl:grid-cols-12 gap-4 items-start';
+                tableCont.className = 'xl:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden';
+                treeCont.className = 'xl:col-span-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print-avoid-break';
+            } else {
+                bHide.className = 'px-2 py-1 rounded bg-white text-slate-800 shadow-sm';
+                grid.className = 'grid grid-cols-1 gap-4 items-start';
+                treeCont.className = 'hidden';
+            }
+        }
+
+        function togglePrintTree(checked) {
+            appState.printIncludeTree = checked;
+            const treeCont = document.getElementById('treeVisualizerContainer');
+            if (!checked) {
+                treeCont.classList.add('no-print');
+            } else {
+                treeCont.classList.remove('no-print');
+            }
+        }
+
+        function switchTab(tabId) {
+            appState.activeTab = tabId;
+            ['tabProject', 'tabBom', 'tabQuick'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== tabId);
+            });
+
+            const btnMap = {
+                tabProject: { id: 'tabBtnProject', icon: 'fa-diagram-project', color: 'text-brand-400' },
+                tabBom: { id: 'tabBtnBom', icon: 'fa-clipboard-list', color: 'text-amber-400' },
+                tabQuick: { id: 'tabBtnQuick', icon: 'fa-bolt', color: 'text-sky-400' }
+            };
+
+            Object.keys(btnMap).forEach(k => {
+                const btn = document.getElementById(btnMap[k].id);
+                if (k === tabId) {
+                    btn.className = 'px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold transition-all bg-slate-900 text-white border-b-2 border-brand-500 flex items-center gap-2';
+                } else {
+                    btn.className = 'px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 border-b-2 border-transparent flex items-center gap-2';
+                }
+            });
+
+            updatePrintHeaders();
+        }
+
+        function updatePrintHeaders() {
+            const pName = document.getElementById('projectNameInput').value || 'Mekanik Tesisat Projesi';
+            document.getElementById('printProjectName').textContent = `Proje: ${pName}`;
+            document.getElementById('printSystemMode').textContent = appState.systemMode === 'closed'
+                ? 'Sistem: Kapalı Devre (Isıtma/Soğutma)'
+                : 'Sistem: Açık Uçlu Sistem (Sıhhi/Yangın)';
+            document.getElementById('printDate').textContent = new Date().toLocaleDateString('tr-TR');
+
+            // Dynamic Report Title based on active tab!
+            const titleEl = document.getElementById('printReportTitle');
+            if (appState.activeTab === 'tabBom') {
+                titleEl.textContent = 'MEKANİK TESİSAT KEŞİF VE METRAJ LİSTESİ';
+            } else {
+                titleEl.textContent = 'MEKANİK TESİSAT HİDROLİK HESAP RAPORU';
+            }
+        }
+
+        function triggerPrint() {
+            updatePrintHeaders();
+            window.print();
+        }
+
+        function exportCSV() {
+            if (appState.rows.length === 0) return;
+            const headers = ['Hat ID', 'Bagli Ust Hat', 'Tur', 'Aciklama', 'Kapasite (kW)', 'DeltaT (C)', 'Debi (L/s)', 'Debi (m3/h)', 'Boru Tipi', 'Anma Capi', 'Ic Cap (mm)', 'Hiz (m/s)', 'Uzunluk (m)', 'Birim Kayip (Pa/m)', 'Lokal Kayip (kPa)', 'Toplam Kayip (mSS)', 'Kritik Hat'];
+            const lines = [headers.join(';')];
+
+            getOrderedTreeRows().forEach(r => {
+                const res = appState.calcResults[r.uid];
+                const rowArr = [
+                    r.id,
+                    r.parentId || 'ROOT',
+                    r.type,
+                    `"${r.name}"`,
+                    r.kw.toFixed(2),
+                    r.dt,
+                    res.flowLs.toFixed(3),
+                    res.flowM3h.toFixed(2),
+                    `"${res.spec.stdName}"`,
+                    `"${res.spec.sizeLabel}"`,
+                    res.spec.dIn.toFixed(1),
+                    res.hyd.v.toFixed(2),
+                    r.length,
+                    res.hyd.rPaM.toFixed(1),
+                    res.localLossKpa.toFixed(2),
+                    res.segmentTotalMss.toFixed(3),
+                    res.isSystemCritical ? 'EVET' : 'HAYIR'
+                ];
+                lines.push(rowArr.join(';'));
+            });
+
+            const blob = new Blob(["\uFEFF" + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mekanik_tesisat_hidrolik_hesap.csv';
+            a.click();
+        }
+
+        function exportBomCSV() {
+            const lines = ['--- POMPA SECIM LISTESI ---', 'Pompa ID;Aciklama;Cap;Kapasite (kW);Debi (m3/h);Basma Yuksekligi (mSS);Kritik Guzergah'];
+            appState.rows.filter(r => r.type === 'pompa').forEach(p => {
+                const res = appState.calcResults[p.uid];
+                const pz = appState.pumpZones[p.id];
+                lines.push(`${p.id};"${p.name}";"${res.spec.sizeLabel}";${p.kw.toFixed(1)};${res.flowM3h.toFixed(2)};${(pz ? pz.maxMss : 0).toFixed(2)};"${pz ? pz.pathIds.join('->') : p.id}"`);
+            });
+
+            lines.push('', '--- BORU METRAJ LISTESI ---', 'Boru Tipi;Anma Capi;Ic Cap (mm);Toplam Uzunluk (m)');
+            document.querySelectorAll('#bomPipesBody tr').forEach(tr => {
+                const cols = Array.from(tr.querySelectorAll('td')).map(td => `"${td.textContent.trim()}"`);
+                if (cols.length === 4) lines.push(cols.join(';'));
+            });
+
+            lines.push('', '--- FITTINGS VE CIHAZ METRAJ LISTESI ---', 'Eleman Adi;Cap;Deger;Toplam Adet');
+            document.querySelectorAll('#bomFittingsBody tr').forEach(tr => {
+                const cols = Array.from(tr.querySelectorAll('td')).map(td => `"${td.textContent.trim()}"`);
+                if (cols.length === 4) lines.push(cols.join(';'));
+            });
+
+            const blob = new Blob(["\uFEFF" + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mekanik_tesisat_kesif_metraj_bom.csv';
+            a.click();
+        }
+
+        // =========================================================
+        // INITIALIZATION
+        // =========================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            loadCustomLibrary();
+            initQuickCalculator();
+            renderAll();
+        });
+    </script>
+</body>
+</html>
